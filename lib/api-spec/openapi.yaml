@@ -3,13 +3,17 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Parent Kicking Tracker API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: athletes
+    description: Athlete management
+  - name: kicks
+    description: Kick tracking
 paths:
   /healthz:
     get:
@@ -24,6 +28,169 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /athletes:
+    get:
+      operationId: getAthletes
+      tags: [athletes]
+      summary: List all athletes
+      responses:
+        "200":
+          description: List of athletes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Athlete"
+    post:
+      operationId: createAthlete
+      tags: [athletes]
+      summary: Create a new athlete
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAthleteBody"
+      responses:
+        "201":
+          description: Created athlete
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Athlete"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /athletes/{id}:
+    delete:
+      operationId: deleteAthlete
+      tags: [athletes]
+      summary: Delete an athlete
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /kicks:
+    get:
+      operationId: getKicks
+      tags: [kicks]
+      summary: List kicks with optional filters
+      parameters:
+        - name: athleteId
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: kickType
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/KickType"
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: List of kicks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Kick"
+    post:
+      operationId: createKick
+      tags: [kicks]
+      summary: Record a new kick
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateKickBody"
+      responses:
+        "201":
+          description: Created kick
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Kick"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /kicks/{id}:
+    delete:
+      operationId: deleteKick
+      tags: [kicks]
+      summary: Delete a kick (fat-finger correction)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /kicks/stats/{athleteId}:
+    get:
+      operationId: getAthleteStats
+      tags: [kicks]
+      summary: Get kick statistics for an athlete
+      parameters:
+        - name: athleteId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Athlete stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AthleteStats"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +201,174 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    DeleteResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+      required:
+        - success
+
+    KickType:
+      type: string
+      enum: [field_goal, punt, kickoff]
+
+    Athlete:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - id
+        - name
+        - createdAt
+
+    CreateAthleteBody:
+      type: object
+      properties:
+        name:
+          type: string
+      required:
+        - name
+
+    FieldGoalData:
+      type: object
+      properties:
+        los:
+          type: number
+        totalDistance:
+          type: number
+        outcome:
+          type: string
+          enum: [made, missed]
+        missType:
+          type: string
+          enum: [left, right, short, blocked, bad_snap]
+          nullable: true
+      required:
+        - los
+        - totalDistance
+        - outcome
+
+    PuntData:
+      type: object
+      properties:
+        snapYard:
+          type: number
+        snapSide:
+          type: string
+          enum: [own, opponent]
+        landingYard:
+          type: number
+        distance:
+          type: number
+        hangtime:
+          type: number
+      required:
+        - snapYard
+        - snapSide
+        - landingYard
+        - distance
+        - hangtime
+
+    KickoffData:
+      type: object
+      properties:
+        touchback:
+          type: boolean
+        touchbackType:
+          type: string
+          enum: [endzone, out_of_endzone]
+          nullable: true
+        hangtime:
+          type: number
+      required:
+        - touchback
+        - hangtime
+
+    Kick:
+      type: object
+      properties:
+        id:
+          type: string
+        athleteId:
+          type: string
+        kickType:
+          $ref: "#/components/schemas/KickType"
+        data:
+          type: object
+        createdAt:
+          type: string
+      required:
+        - id
+        - athleteId
+        - kickType
+        - data
+        - createdAt
+
+    CreateKickBody:
+      type: object
+      properties:
+        athleteId:
+          type: string
+        kickType:
+          $ref: "#/components/schemas/KickType"
+        data:
+          type: object
+      required:
+        - athleteId
+        - kickType
+        - data
+
+    AthleteStats:
+      type: object
+      properties:
+        athleteId:
+          type: string
+        totalKicks:
+          type: integer
+        fieldGoals:
+          type: object
+          properties:
+            total:
+              type: integer
+            made:
+              type: integer
+            missed:
+              type: integer
+        punts:
+          type: object
+          properties:
+            total:
+              type: integer
+            avgDistance:
+              type: number
+            avgHangtime:
+              type: number
+        kickoffs:
+          type: object
+          properties:
+            total:
+              type: integer
+            touchbacks:
+              type: integer
+            avgHangtime:
+              type: number
+      required:
+        - athleteId
+        - totalKicks
+        - fieldGoals
+        - punts
+        - kickoffs
