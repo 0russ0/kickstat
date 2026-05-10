@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import { AthleteBar } from "@/components/AthleteBar";
 import { KickHistoryList } from "@/components/KickHistoryList";
@@ -285,9 +286,12 @@ function GameInfoCard({ game, seasonName }: { game: Game; seasonName?: string })
     scoreText: { fontSize: 14, fontFamily: "Inter_700Bold" },
   });
 
-  const scoreColor = game.myScore != null && game.opponentScore != null
-    ? game.myScore > game.opponentScore ? colors.success : colors.destructive
-    : colors.mutedForeground;
+  const scoreColor =
+    game.myScore != null && game.opponentScore != null
+      ? game.myScore > game.opponentScore
+        ? colors.success
+        : colors.destructive
+      : colors.mutedForeground;
 
   return (
     <View style={s.card}>
@@ -301,9 +305,14 @@ function GameInfoCard({ game, seasonName }: { game: Game; seasonName?: string })
           </View>
         )}
       </View>
-      <Text style={s.meta}>{formatGameDate(game.date)}{seasonName ? `  ·  ${seasonName}` : ""}</Text>
+      <Text style={s.meta}>
+        {formatGameDate(game.date)}
+        {seasonName ? `  ·  ${seasonName}` : ""}
+      </Text>
       <View style={s.row}>
-        <Text style={s.meta}>{game.homeAway === "home" ? "Home" : "Away"}  ·  {game.surface}</Text>
+        <Text style={s.meta}>
+          {game.homeAway === "home" ? "Home" : "Away"}  ·  {game.surface}
+        </Text>
         {game.weather && (
           <Text style={s.meta}>
             ·  {game.weather.conditions ?? ""}
@@ -392,7 +401,7 @@ function GamePicker({
             <View style={s.sheetHandle} />
             <Text style={s.sheetTitle}>Select Game</Text>
             <FlatList
-              data={[null, ...games]}
+              data={[null, ...games] as (Game | null)[]}
               keyExtractor={(item) => item?.id ?? "__all__"}
               contentContainerStyle={{ paddingBottom: 40 }}
               renderItem={({ item: game, index }) => {
@@ -436,6 +445,7 @@ function GamePicker({
 export default function HistoryScreen() {
   const colors = useColors();
   const { activeAthleteId } = useApp();
+  const router = useRouter();
   const [period, setPeriod] = useState<Period>("career");
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
   const insets = useSafeAreaInsets();
@@ -528,8 +538,21 @@ export default function HistoryScreen() {
       backgroundColor: colors.card,
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
     },
-    headerTitle: { fontSize: 22, fontFamily: "Inter_700Bold", color: colors.foreground },
+    backBtn: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.secondary,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    headerTitle: { flex: 1, fontSize: 22, fontFamily: "Inter_700Bold", color: colors.foreground },
     scroll: { flex: 1 },
     content: { padding: 16, gap: 16, paddingBottom: 120 },
     segWrap: {
@@ -557,6 +580,9 @@ export default function HistoryScreen() {
     <GestureDetector gesture={swipeGesture}>
       <View style={s.screen}>
         <View style={s.header}>
+          <Pressable style={s.backBtn} onPress={() => router.back()} hitSlop={8}>
+            <Feather name="arrow-left" size={20} color={colors.foreground} />
+          </Pressable>
           <Text style={s.headerTitle}>History & Stats</Text>
         </View>
         <AthleteBar />

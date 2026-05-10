@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import {
   Alert,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -9,6 +10,8 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import {
   useGetSeasons,
@@ -49,22 +52,22 @@ export default function GamesScreen() {
   const colors = useColors();
   const { activeAthleteId } = useApp();
   const queryClient = useQueryClient();
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const topPadding = Platform.OS === "web" ? 67 : insets.top;
 
   const [expandedSeason, setExpandedSeason] = useState<string | null>(null);
 
-  // New Season modal
   const [showSeasonModal, setShowSeasonModal] = useState(false);
   const [seasonName, setSeasonName] = useState("");
   const [seasonYear, setSeasonYear] = useState(String(new Date().getFullYear()));
 
-  // Edit Season modal
   const [showEditSeasonModal, setShowEditSeasonModal] = useState(false);
   const [editingSeason, setEditingSeason] = useState<Season | null>(null);
   const [editSeasonName, setEditSeasonName] = useState("");
   const [editSeasonYear, setEditSeasonYear] = useState("");
   const [savingEditSeason, setSavingEditSeason] = useState(false);
 
-  // Game modal
   const [showGameModal, setShowGameModal] = useState(false);
   const [gameSeasonId, setGameSeasonId] = useState("");
   const [gameOpponent, setGameOpponent] = useState("");
@@ -75,7 +78,6 @@ export default function GamesScreen() {
   const [gameWindMph, setGameWindMph] = useState("");
   const [gameIsPlayoff, setGameIsPlayoff] = useState(false);
 
-  // Score modal
   const [showScoreModal, setShowScoreModal] = useState(false);
   const [scoringGame, setScoringGame] = useState<Game | null>(null);
   const [myScore, setMyScore] = useState("");
@@ -223,8 +225,30 @@ export default function GamesScreen() {
 
   const s = StyleSheet.create({
     screen: { flex: 1, backgroundColor: colors.background },
+    header: {
+      paddingTop: topPadding + 8,
+      paddingHorizontal: 20,
+      paddingBottom: 14,
+      backgroundColor: colors.card,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+    },
+    backBtn: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.secondary,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    headerTitle: { flex: 1, fontSize: 22, fontFamily: "Inter_700Bold", color: colors.foreground },
     scroll: { flex: 1 },
-    content: { padding: 16, gap: 16, paddingBottom: 40 },
+    content: { padding: 16, gap: 16, paddingBottom: 60 },
     headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
     sectionTitle: { fontSize: 12, fontFamily: "Inter_600SemiBold", color: colors.mutedForeground, letterSpacing: 1, textTransform: "uppercase" },
     addBtn: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: colors.primary, borderRadius: 8 },
@@ -268,6 +292,12 @@ export default function GamesScreen() {
 
   return (
     <View style={s.screen}>
+      <View style={s.header}>
+        <Pressable style={s.backBtn} onPress={() => router.back()} hitSlop={8}>
+          <Feather name="arrow-left" size={20} color={colors.foreground} />
+        </Pressable>
+        <Text style={s.headerTitle}>Games & Seasons</Text>
+      </View>
       <AthleteBar />
       <ScrollView style={s.scroll} contentContainerStyle={s.content}>
         <View style={s.headerRow}>
@@ -279,13 +309,15 @@ export default function GamesScreen() {
         </View>
 
         {seasons.length === 0 ? (
-          <View style={[s.card, { padding: 20, alignItems: "center" }]}>
-            <Text style={{ color: colors.mutedForeground, fontFamily: "Inter_400Regular" }}>No seasons yet. Add one to get started.</Text>
+          <View style={[s.card, { padding: 24, alignItems: "center", gap: 12 }]}>
+            <Feather name="calendar" size={32} color={colors.mutedForeground} />
+            <Text style={{ color: colors.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 14, textAlign: "center" }}>
+              No seasons yet.{"\n"}Tap "New Season" to get started.
+            </Text>
           </View>
         ) : (
           seasons.map((season) => (
             <View key={season.id} style={s.card}>
-              {/* Season header row — name | year | edit | delete | chevron */}
               <View style={s.seasonRow}>
                 <Text style={s.seasonName}>{season.name}</Text>
                 <Text style={s.seasonYear}>{season.year}</Text>
@@ -318,7 +350,7 @@ export default function GamesScreen() {
                   </Pressable>
 
                   {games.length === 0 ? (
-                    <Text style={s.emptyText}>No games yet.</Text>
+                    <Text style={s.emptyText}>No games yet. Tap "Add Game" above.</Text>
                   ) : (
                     games.map((game, i) => (
                       <View key={game.id}>
@@ -369,7 +401,7 @@ export default function GamesScreen() {
             <Text style={s.sheetTitle}>New Season</Text>
             <View>
               <Text style={s.label}>Season Name</Text>
-              <TextInput style={s.input} value={seasonName} onChangeText={setSeasonName} placeholder="e.g. 2025 Fall" placeholderTextColor={colors.mutedForeground} />
+              <TextInput style={s.input} value={seasonName} onChangeText={setSeasonName} placeholder="e.g. 2025 Fall" placeholderTextColor={colors.mutedForeground} autoFocus />
             </View>
             <View>
               <Text style={s.label}>Year</Text>

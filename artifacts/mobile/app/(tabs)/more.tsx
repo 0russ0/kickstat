@@ -153,12 +153,12 @@ export default function MoreScreen() {
               <NavRow
                 icon="calendar"
                 label="Games & Seasons"
-                onPress={() => router.navigate("/(tabs)/games" as never)}
+                onPress={() => router.push("/games")}
               />
               <NavRow
                 icon="list"
                 label="History & Stats"
-                onPress={() => router.navigate("/(tabs)/history" as never)}
+                onPress={() => router.push("/history")}
                 last
               />
             </View>

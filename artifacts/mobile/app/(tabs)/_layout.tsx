@@ -29,10 +29,6 @@ function NativeTabLayout() {
         <Icon sf={{ default: "figure.run.circle", selected: "figure.run.circle.fill" }} />
         <Label>Practice</Label>
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="history">
-        <Icon sf={{ default: "list.bullet.clipboard", selected: "list.bullet.clipboard.fill" }} />
-        <Label>History</Label>
-      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="more">
         <Icon sf={{ default: "ellipsis.circle", selected: "ellipsis.circle.fill" }} />
         <Label>More</Label>
@@ -128,18 +124,6 @@ function ClassicTabLayout() {
         }}
       />
       <Tabs.Screen
-        name="history"
-        options={{
-          title: "History",
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="list.bullet.clipboard" tintColor={color} size={24} />
-            ) : (
-              <Feather name="list" size={22} color={color} />
-            ),
-        }}
-      />
-      <Tabs.Screen
         name="more"
         options={{
           title: "More",
@@ -150,15 +134,6 @@ function ClassicTabLayout() {
               <Feather name="more-horizontal" size={22} color={color} />
             ),
         }}
-      />
-      {/* Games and History are accessible via More menu — hidden from tab bar */}
-      <Tabs.Screen
-        name="games"
-        options={{ href: null }}
-      />
-      <Tabs.Screen
-        name="history"
-        options={{ href: null }}
       />
     </Tabs>
   );
