@@ -1,5 +1,6 @@
-import React, { useMemo, useRef } from "react";
+import React, { useMemo, useState } from "react";
 import {
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -7,6 +8,7 @@ import {
   View,
 } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AthleteBar } from "@/components/AthleteBar";
 import { KickHistoryList } from "@/components/KickHistoryList";
 import { useApp } from "@/context/AppContext";
@@ -14,14 +16,11 @@ import { useColors } from "@/hooks/useColors";
 import { formatHangtime } from "@/hooks/useStopwatch";
 import { useGetKicks, getGetKicksQueryKey } from "@workspace/api-client-react";
 import type { Kick } from "@workspace/api-client-react";
-import { useRouter } from "expo-router";
-import { useState } from "react";
 
-type Period = "practice" | "game" | "season" | "career";
+type Period = "game" | "season" | "career";
 type KickRecord = Kick & { isGameWinner?: boolean | null };
 
 const PERIODS: { key: Period; label: string }[] = [
-  { key: "practice", label: "Practice" },
   { key: "game", label: "Game" },
   { key: "season", label: "Season" },
   { key: "career", label: "Career" },
@@ -157,17 +156,12 @@ function SectionCard({
       fontSize: 13,
       textAlign: "center",
     },
-    divider: { height: 1, backgroundColor: colors.border },
   });
   return (
     <View>
       <Text style={s.header}>{title}</Text>
       <View style={s.card}>
-        {empty ? (
-          <Text style={s.emptyText}>No kicks recorded</Text>
-        ) : (
-          children
-        )}
+        {empty ? <Text style={s.emptyText}>No kicks recorded</Text> : children}
       </View>
     </View>
   );
@@ -178,13 +172,7 @@ function Divider() {
   return <View style={{ height: 1, backgroundColor: colors.border }} />;
 }
 
-function FGStatsCard({
-  stats,
-  showGameWinners,
-}: {
-  stats: ReturnType<typeof computeStats>["fg"];
-  showGameWinners: boolean;
-}) {
+function FGStatsCard({ stats }: { stats: ReturnType<typeof computeStats>["fg"] }) {
   if (stats.total === 0) return <SectionCard title="Field Goals" empty />;
   return (
     <SectionCard title="Field Goals">
@@ -197,12 +185,8 @@ function FGStatsCard({
       <StatRow label="Avg Distance" value={avg(stats.avgDist, "yd")} />
       <Divider />
       <StatRow label="Longest FG" value={stats.longest != null ? `${stats.longest}yd` : "—"} />
-      {showGameWinners && (
-        <>
-          <Divider />
-          <StatRow label="Game Winners" value={stats.gameWinners} />
-        </>
-      )}
+      <Divider />
+      <StatRow label="Game Winners" value={stats.gameWinners} />
     </SectionCard>
   );
 }
@@ -257,7 +241,8 @@ export default function HistoryScreen() {
   const colors = useColors();
   const { activeAthleteId } = useApp();
   const [period, setPeriod] = useState<Period>("career");
-  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const topPadding = Platform.OS === "web" ? 67 : insets.top;
 
   const allKicksParams = { athleteId: activeAthleteId ?? undefined, limit: 1000 };
   const { data: allKicks = [] } = useGetKicks(allKicksParams, {
@@ -278,36 +263,26 @@ export default function HistoryScreen() {
         setPeriod(PERIODS[periodIndex + 1].key);
       } else if (e.velocityX > 300 && e.translationX > 30 && periodIndex > 0) {
         setPeriod(PERIODS[periodIndex - 1].key);
-      } else if (e.velocityX < -400 && e.translationX < -50 && periodIndex === PERIODS.length - 1) {
-        router.navigate("/(tabs)/more" as never);
       }
     });
 
-  const { kicks, label, showGameWinners } = useMemo(() => {
+  const { kicks, label } = useMemo(() => {
     switch (period) {
-      case "practice": {
-        const k = (allKicks as KickRecord[]).filter((k) => k.gameId == null);
-        return { kicks: k, label: "Practice Stats", showGameWinners: false };
-      }
       case "game": {
         const k = (allKicks as KickRecord[]).filter((k) => k.gameId != null);
-        return { kicks: k, label: "Game Stats", showGameWinners: true };
+        return { kicks: k, label: "Game Stats" };
       }
       case "season": {
         const cutoff = startOfSeason();
         const k = (allKicks as KickRecord[]).filter(
           (k) => k.gameId != null && new Date(k.createdAt) >= cutoff,
         );
-        return {
-          kicks: k,
-          label: `Season Stats (Aug ${cutoff.getFullYear()}–Present)`,
-          showGameWinners: true,
-        };
+        return { kicks: k, label: `Season Summary (Aug ${cutoff.getFullYear()}–Present)` };
       }
       case "career":
       default: {
         const k = (allKicks as KickRecord[]).filter((kk) => kk.gameId != null);
-        return { kicks: k, label: "Career Stats (Games Only)", showGameWinners: true };
+        return { kicks: k, label: "Career Summary" };
       }
     }
   }, [allKicks, period]);
@@ -316,6 +291,19 @@ export default function HistoryScreen() {
 
   const s = StyleSheet.create({
     screen: { flex: 1, backgroundColor: colors.background },
+    header: {
+      paddingTop: topPadding + 8,
+      paddingHorizontal: 20,
+      paddingBottom: 14,
+      backgroundColor: colors.card,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    headerTitle: {
+      fontSize: 22,
+      fontFamily: "Inter_700Bold",
+      color: colors.foreground,
+    },
     scroll: { flex: 1 },
     content: { padding: 16, gap: 16, paddingBottom: 120 },
     segWrap: {
@@ -333,7 +321,7 @@ export default function HistoryScreen() {
       alignItems: "center",
     },
     segLabel: {
-      fontSize: 12,
+      fontSize: 13,
       fontFamily: "Inter_600SemiBold",
       letterSpacing: 0.2,
     },
@@ -354,11 +342,12 @@ export default function HistoryScreen() {
     statsGroup: { gap: 12 },
   });
 
-  const historyPracticeOnly = period === "practice" ? true : undefined;
-
   return (
     <GestureDetector gesture={swipeGesture}>
       <View style={s.screen}>
+        <View style={s.header}>
+          <Text style={s.headerTitle}>History & Stats</Text>
+        </View>
         <AthleteBar />
         <ScrollView style={s.scroll} contentContainerStyle={s.content}>
           {/* Period selector */}
@@ -393,13 +382,13 @@ export default function HistoryScreen() {
           {/* Stats — three separate cards */}
           <Text style={s.sectionHeader}>{label}</Text>
           <View style={s.statsGroup}>
-            <FGStatsCard stats={stats.fg} showGameWinners={showGameWinners} />
+            <FGStatsCard stats={stats.fg} />
             <PuntStatsCard stats={stats.punt} />
             <KOStatsCard stats={stats.ko} />
           </View>
 
           {/* Recent kicks */}
-          <KickHistoryList practiceOnly={historyPracticeOnly} />
+          <KickHistoryList />
         </ScrollView>
       </View>
     </GestureDetector>

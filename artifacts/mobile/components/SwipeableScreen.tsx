@@ -8,7 +8,6 @@ const TAB_ROUTES = [
   "/(tabs)/punt",
   "/(tabs)/kickoff",
   "/(tabs)/practice",
-  "/(tabs)/history",
   "/(tabs)/more",
 ];
 

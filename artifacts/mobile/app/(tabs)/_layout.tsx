@@ -151,12 +151,14 @@ function ClassicTabLayout() {
             ),
         }}
       />
-      {/* Games is accessible via More menu — hidden from tab bar */}
+      {/* Games and History are accessible via More menu — hidden from tab bar */}
       <Tabs.Screen
         name="games"
-        options={{
-          href: null,
-        }}
+        options={{ href: null }}
+      />
+      <Tabs.Screen
+        name="history"
+        options={{ href: null }}
       />
     </Tabs>
   );

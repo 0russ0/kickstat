@@ -140,7 +140,7 @@ export default function MoreScreen() {
   });
 
   return (
-    <SwipeableScreen tabIndex={5}>
+    <SwipeableScreen tabIndex={4}>
       <View style={s.screen}>
         <View style={s.header}>
           <Text style={s.headerTitle}>More</Text>
@@ -154,6 +154,11 @@ export default function MoreScreen() {
                 icon="calendar"
                 label="Games & Seasons"
                 onPress={() => router.navigate("/(tabs)/games" as never)}
+              />
+              <NavRow
+                icon="list"
+                label="History & Stats"
+                onPress={() => router.navigate("/(tabs)/history" as never)}
                 last
               />
             </View>
