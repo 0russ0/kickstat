@@ -70,12 +70,38 @@ export const PuntDataSnapSide = {
   opponent: "opponent",
 } as const;
 
+export type PuntDataLandingSide =
+  | (typeof PuntDataLandingSide)[keyof typeof PuntDataLandingSide]
+  | null;
+
+export const PuntDataLandingSide = {
+  own: "own",
+  opponent: "opponent",
+} as const;
+
+export type PuntDataResult =
+  | (typeof PuntDataResult)[keyof typeof PuntDataResult]
+  | null;
+
+export const PuntDataResult = {
+  out_of_bounds: "out_of_bounds",
+  touchback: "touchback",
+  blocked: "blocked",
+  bad_snap: "bad_snap",
+  fair_catch: "fair_catch",
+  downed: "downed",
+  punt_return: "punt_return",
+} as const;
+
 export interface PuntData {
   snapYard: number;
   snapSide: PuntDataSnapSide;
-  landingYard: number;
-  distance: number;
+  landingYard?: number | null;
+  landingSide?: PuntDataLandingSide;
+  distance?: number | null;
   hangtime: number;
+  result?: PuntDataResult;
+  returnYards?: number | null;
 }
 
 export type KickoffDataTouchbackType =

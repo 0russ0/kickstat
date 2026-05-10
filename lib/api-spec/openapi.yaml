@@ -272,15 +272,26 @@ components:
           enum: [own, opponent]
         landingYard:
           type: number
+          nullable: true
+        landingSide:
+          type: string
+          enum: [own, opponent]
+          nullable: true
         distance:
           type: number
+          nullable: true
         hangtime:
           type: number
+        result:
+          type: string
+          enum: [out_of_bounds, touchback, blocked, bad_snap, fair_catch, downed, punt_return]
+          nullable: true
+        returnYards:
+          type: number
+          nullable: true
       required:
         - snapYard
         - snapSide
-        - landingYard
-        - distance
         - hangtime
 
     KickoffData:

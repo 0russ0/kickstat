@@ -18,7 +18,37 @@ import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { useStopwatch } from "@/hooks/useStopwatch";
 
-type SnapSide = "own" | "opponent";
+type FieldSide = "own" | "opponent";
+type PuntResult =
+  | "out_of_bounds"
+  | "touchback"
+  | "blocked"
+  | "bad_snap"
+  | "fair_catch"
+  | "downed"
+  | "punt_return";
+
+const RESULTS: { value: PuntResult; label: string }[] = [
+  { value: "out_of_bounds", label: "Out of Bounds" },
+  { value: "touchback", label: "Touchback" },
+  { value: "fair_catch", label: "Fair Catch" },
+  { value: "downed", label: "Downed" },
+  { value: "punt_return", label: "Punt Return" },
+  { value: "blocked", label: "Blocked" },
+  { value: "bad_snap", label: "Bad Snap" },
+];
+
+function calcDistance(
+  snapYard: number,
+  snapSide: FieldSide,
+  landingYard: number,
+  landingSide: FieldSide,
+): number {
+  // Convert to absolute field position (0 = own goal line, 100 = opponent goal line)
+  const snapPos = snapSide === "own" ? snapYard : 100 - snapYard;
+  const landPos = landingSide === "own" ? landingYard : 100 - landingYard;
+  return Math.max(0, landPos - snapPos);
+}
 
 export default function PuntScreen() {
   const colors = useColors();
@@ -26,21 +56,27 @@ export default function PuntScreen() {
   const stopwatch = useStopwatch();
 
   const [snapYard, setSnapYard] = useState("");
+  const [snapSide, setSnapSide] = useState<FieldSide>("own");
   const [landingYard, setLandingYard] = useState("");
-  const [snapSide, setSnapSide] = useState<SnapSide>("own");
+  const [landingSide, setLandingSide] = useState<FieldSide>("opponent");
+  const [result, setResult] = useState<PuntResult | null>(null);
+  const [returnYards, setReturnYards] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const snapN = Number(snapYard);
-  const landN = Number(landingYard);
+  const snapN = snapYard ? Number(snapYard) : null;
+  const landN = landingYard ? Number(landingYard) : null;
   const distance =
-    snapYard && landingYard && !isNaN(snapN) && !isNaN(landN)
-      ? Math.abs(landN - snapN)
+    snapN !== null && landN !== null && !isNaN(snapN) && !isNaN(landN)
+      ? calcDistance(snapN, snapSide, landN, landingSide)
       : null;
 
   const reset = () => {
     setSnapYard("");
-    setLandingYard("");
     setSnapSide("own");
+    setLandingYard("");
+    setLandingSide("opponent");
+    setResult(null);
+    setReturnYards("");
     stopwatch.reset();
   };
 
@@ -49,12 +85,12 @@ export default function PuntScreen() {
       Alert.alert("No Athlete", "Please select an athlete first.");
       return;
     }
-    if (!snapYard || isNaN(snapN)) {
+    if (!snapYard || snapN === null || isNaN(snapN)) {
       Alert.alert("Missing Info", "Please enter the snap yard line.");
       return;
     }
-    if (!landingYard || isNaN(landN)) {
-      Alert.alert("Missing Info", "Please enter the landing yard.");
+    if (result === "punt_return" && (!returnYards || isNaN(Number(returnYards)))) {
+      Alert.alert("Missing Info", "Please enter the return yards.");
       return;
     }
 
@@ -67,15 +103,18 @@ export default function PuntScreen() {
         data: {
           snapYard: snapN,
           snapSide,
-          landingYard: landN,
-          distance: Math.abs(landN - snapN),
+          landingYard: landN ?? null,
+          landingSide: landN !== null ? landingSide : null,
+          distance: distance ?? null,
           hangtime: finalHangtime,
+          result: result ?? null,
+          returnYards: result === "punt_return" && returnYards ? Number(returnYards) : null,
         },
       });
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       reset();
     } catch {
-      Alert.alert("Error", "Failed to save kick.");
+      Alert.alert("Error", "Failed to save punt.");
     } finally {
       setSubmitting(false);
     }
@@ -84,7 +123,7 @@ export default function PuntScreen() {
   const s = StyleSheet.create({
     screen: { flex: 1, backgroundColor: colors.background },
     scroll: { flex: 1 },
-    content: { padding: 16, gap: 20, paddingBottom: 40 },
+    content: { padding: 16, gap: 16, paddingBottom: 40 },
     card: {
       backgroundColor: colors.card,
       borderRadius: 16,
@@ -100,16 +139,16 @@ export default function PuntScreen() {
       letterSpacing: 1,
       textTransform: "uppercase",
     },
-    toggleRow: { flexDirection: "row", gap: 8 },
-    toggleBtn: {
+    sideRow: { flexDirection: "row", gap: 8 },
+    sideBtn: {
       flex: 1,
-      paddingVertical: 12,
+      paddingVertical: 10,
       borderRadius: 10,
       alignItems: "center",
       borderWidth: 1.5,
     },
-    toggleBtnText: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
-    yardRow: { flexDirection: "row", gap: 12 },
+    sideBtnText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
+    yardRow: { flexDirection: "row", gap: 12, alignItems: "flex-end" },
     yardBox: { flex: 1, gap: 6 },
     input: {
       backgroundColor: colors.input,
@@ -126,32 +165,36 @@ export default function PuntScreen() {
     distanceCard: {
       backgroundColor: colors.secondary,
       borderRadius: 12,
-      padding: 16,
+      padding: 14,
       alignItems: "center",
-      gap: 4,
+      gap: 2,
     },
     distanceValue: {
-      fontSize: 36,
+      fontSize: 34,
       fontFamily: "Inter_700Bold",
       color: colors.primary,
       letterSpacing: -1,
     },
     distanceUnit: {
-      fontSize: 14,
+      fontSize: 13,
       fontFamily: "Inter_500Medium",
       color: colors.mutedForeground,
     },
+    resultGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+    resultBtn: {
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      borderRadius: 10,
+      borderWidth: 1.5,
+    },
+    resultBtnText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
+    stopwatchCenter: { alignItems: "center" },
     submitBtn: {
       paddingVertical: 16,
       borderRadius: 14,
       alignItems: "center",
     },
-    submitText: {
-      fontSize: 16,
-      fontFamily: "Inter_700Bold",
-      letterSpacing: 0.3,
-    },
-    stopwatchCenter: { alignItems: "center" },
+    submitText: { fontSize: 16, fontFamily: "Inter_700Bold", letterSpacing: 0.3 },
   });
 
   return (
@@ -161,18 +204,23 @@ export default function PuntScreen() {
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <ScrollView style={s.scroll} contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          style={s.scroll}
+          contentContainerStyle={s.content}
+          keyboardShouldPersistTaps="handled"
+        >
           <View style={s.card}>
             <Text style={s.cardTitle}>Punt</Text>
 
-            <View>
-              <Text style={[s.cardTitle, { marginBottom: 8 }]}>Snap Side</Text>
-              <View style={s.toggleRow}>
-                {(["own", "opponent"] as SnapSide[]).map((side) => (
+            {/* Snap */}
+            <View style={s.yardBox}>
+              <Text style={s.cardTitle}>Snap Yard Line</Text>
+              <View style={[s.sideRow, { marginBottom: 8 }]}>
+                {(["own", "opponent"] as FieldSide[]).map((side) => (
                   <Pressable
                     key={side}
                     style={[
-                      s.toggleBtn,
+                      s.sideBtn,
                       {
                         backgroundColor: snapSide === side ? colors.primary : colors.secondary,
                         borderColor: snapSide === side ? colors.primary : colors.border,
@@ -180,41 +228,67 @@ export default function PuntScreen() {
                     ]}
                     onPress={() => setSnapSide(side)}
                   >
-                    <Text style={[s.toggleBtnText, { color: snapSide === side ? "#fff" : colors.mutedForeground }]}>
+                    <Text
+                      style={[
+                        s.sideBtnText,
+                        { color: snapSide === side ? "#fff" : colors.mutedForeground },
+                      ]}
+                    >
                       {side === "own" ? "Own Side" : "Opp Side"}
                     </Text>
                   </Pressable>
                 ))}
               </View>
+              <TextInput
+                style={s.input}
+                value={snapYard}
+                onChangeText={setSnapYard}
+                placeholder="—"
+                placeholderTextColor={colors.mutedForeground}
+                keyboardType="numeric"
+                maxLength={2}
+              />
             </View>
 
-            <View style={s.yardRow}>
-              <View style={s.yardBox}>
-                <Text style={s.cardTitle}>Snap Yard</Text>
-                <TextInput
-                  style={s.input}
-                  value={snapYard}
-                  onChangeText={setSnapYard}
-                  placeholder="—"
-                  placeholderTextColor={colors.mutedForeground}
-                  keyboardType="numeric"
-                  maxLength={3}
-                />
+            {/* Landing */}
+            <View style={s.yardBox}>
+              <Text style={s.cardTitle}>Landing Yard Line</Text>
+              <View style={[s.sideRow, { marginBottom: 8 }]}>
+                {(["own", "opponent"] as FieldSide[]).map((side) => (
+                  <Pressable
+                    key={side}
+                    style={[
+                      s.sideBtn,
+                      {
+                        backgroundColor: landingSide === side ? colors.primary : colors.secondary,
+                        borderColor: landingSide === side ? colors.primary : colors.border,
+                      },
+                    ]}
+                    onPress={() => setLandingSide(side)}
+                  >
+                    <Text
+                      style={[
+                        s.sideBtnText,
+                        { color: landingSide === side ? "#fff" : colors.mutedForeground },
+                      ]}
+                    >
+                      {side === "own" ? "Own Side" : "Opp Side"}
+                    </Text>
+                  </Pressable>
+                ))}
               </View>
-              <View style={s.yardBox}>
-                <Text style={s.cardTitle}>Landing Yard</Text>
-                <TextInput
-                  style={s.input}
-                  value={landingYard}
-                  onChangeText={setLandingYard}
-                  placeholder="—"
-                  placeholderTextColor={colors.mutedForeground}
-                  keyboardType="numeric"
-                  maxLength={3}
-                />
-              </View>
+              <TextInput
+                style={s.input}
+                value={landingYard}
+                onChangeText={setLandingYard}
+                placeholder="—"
+                placeholderTextColor={colors.mutedForeground}
+                keyboardType="numeric"
+                maxLength={2}
+              />
             </View>
 
+            {/* Calculated distance */}
             {distance !== null && (
               <View style={s.distanceCard}>
                 <Text style={s.distanceUnit}>Punt Distance</Text>
@@ -222,6 +296,7 @@ export default function PuntScreen() {
               </View>
             )}
 
+            {/* Hangtime */}
             <View style={s.stopwatchCenter}>
               <StopwatchButton
                 elapsed={stopwatch.elapsed}
@@ -231,10 +306,58 @@ export default function PuntScreen() {
                 label="Hangtime"
               />
             </View>
+
+            {/* Result */}
+            <View>
+              <Text style={[s.cardTitle, { marginBottom: 10 }]}>Result</Text>
+              <View style={s.resultGrid}>
+                {RESULTS.map((r) => (
+                  <Pressable
+                    key={r.value}
+                    style={[
+                      s.resultBtn,
+                      {
+                        backgroundColor: result === r.value ? colors.primary : colors.secondary,
+                        borderColor: result === r.value ? colors.primary : colors.border,
+                      },
+                    ]}
+                    onPress={() => setResult(result === r.value ? null : r.value)}
+                  >
+                    <Text
+                      style={[
+                        s.resultBtnText,
+                        { color: result === r.value ? "#fff" : colors.mutedForeground },
+                      ]}
+                    >
+                      {r.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+
+            {/* Return yards (only for punt return) */}
+            {result === "punt_return" && (
+              <View style={s.yardBox}>
+                <Text style={s.cardTitle}>Return Yards</Text>
+                <TextInput
+                  style={s.input}
+                  value={returnYards}
+                  onChangeText={setReturnYards}
+                  placeholder="—"
+                  placeholderTextColor={colors.mutedForeground}
+                  keyboardType="numeric"
+                  maxLength={3}
+                />
+              </View>
+            )}
           </View>
 
           <Pressable
-            style={[s.submitBtn, { backgroundColor: colors.primary, opacity: submitting ? 0.7 : 1 }]}
+            style={[
+              s.submitBtn,
+              { backgroundColor: colors.primary, opacity: submitting ? 0.7 : 1 },
+            ]}
             onPress={handleSubmit}
             disabled={submitting}
           >
