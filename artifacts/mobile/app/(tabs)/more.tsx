@@ -5,7 +5,6 @@ import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 import { useTheme } from "@/context/ThemeContext";
-import { SwipeableScreen } from "@/components/SwipeableScreen";
 
 function NavRow({
   icon,
@@ -140,89 +139,87 @@ export default function MoreScreen() {
   });
 
   return (
-    <SwipeableScreen tabIndex={4}>
-      <View style={s.screen}>
-        <View style={s.header}>
-          <Text style={s.headerTitle}>More</Text>
-        </View>
-        <ScrollView contentContainerStyle={s.content}>
+    <View style={s.screen}>
+      <View style={s.header}>
+        <Text style={s.headerTitle}>More</Text>
+      </View>
+      <ScrollView contentContainerStyle={s.content}>
 
-          <View>
-            <Text style={s.sectionLabel}>Manage</Text>
-            <View style={s.card}>
-              <NavRow
-                icon="calendar"
-                label="Games & Seasons"
-                onPress={() => router.push("/games")}
-              />
-              <NavRow
-                icon="list"
-                label="History & Stats"
-                onPress={() => router.push("/history")}
-                last
-              />
-            </View>
+        <View>
+          <Text style={s.sectionLabel}>Manage</Text>
+          <View style={s.card}>
+            <NavRow
+              icon="calendar"
+              label="Games & Seasons"
+              onPress={() => router.push("/games")}
+            />
+            <NavRow
+              icon="list"
+              label="History & Stats"
+              onPress={() => router.push("/history")}
+              last
+            />
           </View>
+        </View>
 
-          <View>
-            <Text style={s.sectionLabel}>Appearance</Text>
-            <View style={s.card}>
-              <View style={s.themeRow}>
-                <View
+        <View>
+          <Text style={s.sectionLabel}>Appearance</Text>
+          <View style={s.card}>
+            <View style={s.themeRow}>
+              <View
+                style={[
+                  s.themeIconWrap,
+                  { backgroundColor: isDark ? "#1e293b" : "#fef9c3" },
+                ]}
+              >
+                <Feather
+                  name={isDark ? "moon" : "sun"}
+                  size={18}
+                  color={isDark ? "#94a3b8" : "#d97706"}
+                />
+              </View>
+              <Text style={[s.themeLabel, { color: colors.foreground }]}>
+                {isDark ? "Dark Mode" : "Light Mode"}
+              </Text>
+              <View style={s.pill}>
+                <Pressable
                   style={[
-                    s.themeIconWrap,
-                    { backgroundColor: isDark ? "#1e293b" : "#fef9c3" },
+                    s.pillBtn,
+                    { backgroundColor: !isDark ? colors.primary : "transparent" },
                   ]}
+                  onPress={() => isDark && toggleTheme()}
                 >
-                  <Feather
-                    name={isDark ? "moon" : "sun"}
-                    size={18}
-                    color={isDark ? "#94a3b8" : "#d97706"}
-                  />
-                </View>
-                <Text style={[s.themeLabel, { color: colors.foreground }]}>
-                  {isDark ? "Dark Mode" : "Light Mode"}
-                </Text>
-                <View style={s.pill}>
-                  <Pressable
+                  <Text
                     style={[
-                      s.pillBtn,
-                      { backgroundColor: !isDark ? colors.primary : "transparent" },
+                      s.pillBtnText,
+                      { color: !isDark ? "#fff" : colors.mutedForeground },
                     ]}
-                    onPress={() => isDark && toggleTheme()}
                   >
-                    <Text
-                      style={[
-                        s.pillBtnText,
-                        { color: !isDark ? "#fff" : colors.mutedForeground },
-                      ]}
-                    >
-                      Light
-                    </Text>
-                  </Pressable>
-                  <Pressable
+                    Light
+                  </Text>
+                </Pressable>
+                <Pressable
+                  style={[
+                    s.pillBtn,
+                    { backgroundColor: isDark ? colors.primary : "transparent" },
+                  ]}
+                  onPress={() => !isDark && toggleTheme()}
+                >
+                  <Text
                     style={[
-                      s.pillBtn,
-                      { backgroundColor: isDark ? colors.primary : "transparent" },
+                      s.pillBtnText,
+                      { color: isDark ? "#fff" : colors.mutedForeground },
                     ]}
-                    onPress={() => !isDark && toggleTheme()}
                   >
-                    <Text
-                      style={[
-                        s.pillBtnText,
-                        { color: isDark ? "#fff" : colors.mutedForeground },
-                      ]}
-                    >
-                      Dark
-                    </Text>
-                  </Pressable>
-                </View>
+                    Dark
+                  </Text>
+                </Pressable>
               </View>
             </View>
           </View>
+        </View>
 
-        </ScrollView>
-      </View>
-    </SwipeableScreen>
+      </ScrollView>
+    </View>
   );
 }
