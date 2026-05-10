@@ -1,5 +1,7 @@
 import React, { useMemo, useState } from "react";
 import {
+  FlatList,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -9,13 +11,21 @@ import {
 } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Feather } from "@expo/vector-icons";
 import { AthleteBar } from "@/components/AthleteBar";
 import { KickHistoryList } from "@/components/KickHistoryList";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { formatHangtime } from "@/hooks/useStopwatch";
-import { useGetKicks, getGetKicksQueryKey } from "@workspace/api-client-react";
-import type { Kick } from "@workspace/api-client-react";
+import {
+  useGetKicks,
+  useGetGames,
+  useGetSeasons,
+  getGetKicksQueryKey,
+  getGetGamesQueryKey,
+  getGetSeasonsQueryKey,
+} from "@workspace/api-client-react";
+import type { Kick, Game } from "@workspace/api-client-react";
 
 type Period = "game" | "season" | "career";
 type KickRecord = Kick & { isGameWinner?: boolean | null };
@@ -30,6 +40,19 @@ function startOfSeason(): Date {
   const now = new Date();
   const year = now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1;
   return new Date(year, 7, 1);
+}
+
+function formatGameDate(dateStr: string): string {
+  const d = new Date(dateStr + "T00:00:00");
+  return d.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
+}
+
+function formatScore(game: Game): string | null {
+  if (game.myScore != null && game.opponentScore != null) {
+    const won = game.myScore > game.opponentScore;
+    return `${won ? "W" : "L"} ${game.myScore}–${game.opponentScore}`;
+  }
+  return null;
 }
 
 function computeStats(kicks: KickRecord[]) {
@@ -123,6 +146,11 @@ function avg(val: number | null, unit: string): string {
   return `${Math.round(val)}${unit}`;
 }
 
+function Divider() {
+  const colors = useColors();
+  return <View style={{ height: 1, backgroundColor: colors.border }} />;
+}
+
 function SectionCard({
   title,
   children,
@@ -165,11 +193,6 @@ function SectionCard({
       </View>
     </View>
   );
-}
-
-function Divider() {
-  const colors = useColors();
-  return <View style={{ height: 1, backgroundColor: colors.border }} />;
 }
 
 function FGStatsCard({ stats }: { stats: ReturnType<typeof computeStats>["fg"] }) {
@@ -237,10 +260,184 @@ function KOStatsCard({ stats }: { stats: ReturnType<typeof computeStats>["ko"] }
   );
 }
 
+function GameInfoCard({ game, seasonName }: { game: Game; seasonName?: string }) {
+  const colors = useColors();
+  const score = formatScore(game);
+  const s = StyleSheet.create({
+    card: {
+      backgroundColor: colors.card,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: 16,
+      gap: 6,
+    },
+    row: { flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" },
+    opponent: { fontSize: 17, fontFamily: "Inter_700Bold", color: colors.foreground },
+    badge: {
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 6,
+      backgroundColor: colors.secondary,
+    },
+    badgeText: { fontSize: 11, fontFamily: "Inter_600SemiBold", color: colors.mutedForeground },
+    meta: { fontSize: 13, fontFamily: "Inter_400Regular", color: colors.mutedForeground },
+    scoreText: { fontSize: 14, fontFamily: "Inter_700Bold" },
+  });
+
+  const scoreColor = game.myScore != null && game.opponentScore != null
+    ? game.myScore > game.opponentScore ? colors.success : colors.destructive
+    : colors.mutedForeground;
+
+  return (
+    <View style={s.card}>
+      <View style={s.row}>
+        <Text style={s.opponent}>
+          {game.homeAway === "home" ? "vs" : "@"} {game.opponent ?? "TBD"}
+        </Text>
+        {game.isPlayoff && (
+          <View style={[s.badge, { backgroundColor: colors.warning + "22" }]}>
+            <Text style={[s.badgeText, { color: colors.warning }]}>Playoff</Text>
+          </View>
+        )}
+      </View>
+      <Text style={s.meta}>{formatGameDate(game.date)}{seasonName ? `  ·  ${seasonName}` : ""}</Text>
+      <View style={s.row}>
+        <Text style={s.meta}>{game.homeAway === "home" ? "Home" : "Away"}  ·  {game.surface}</Text>
+        {game.weather && (
+          <Text style={s.meta}>
+            ·  {game.weather.conditions ?? ""}
+            {game.weather.windMph ? `  ${game.weather.windMph} mph` : ""}
+          </Text>
+        )}
+      </View>
+      {score && <Text style={[s.scoreText, { color: scoreColor }]}>{score}</Text>}
+    </View>
+  );
+}
+
+function GamePicker({
+  games,
+  seasonMap,
+  selectedId,
+  onSelect,
+}: {
+  games: Game[];
+  seasonMap: Record<string, string>;
+  selectedId: string | null;
+  onSelect: (id: string | null) => void;
+}) {
+  const colors = useColors();
+  const [open, setOpen] = useState(false);
+
+  const selected = games.find((g) => g.id === selectedId);
+  const label = selected
+    ? `${selected.homeAway === "home" ? "vs" : "@"} ${selected.opponent ?? "TBD"}  ·  ${formatGameDate(selected.date)}`
+    : "All Games";
+
+  const s = StyleSheet.create({
+    trigger: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.card,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingHorizontal: 14,
+      paddingVertical: 11,
+      gap: 8,
+    },
+    triggerLabel: { flex: 1, fontSize: 14, fontFamily: "Inter_500Medium", color: colors.foreground },
+    overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.55)", justifyContent: "flex-end" },
+    sheet: {
+      backgroundColor: colors.card,
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      borderTopWidth: 1,
+      borderColor: colors.border,
+      maxHeight: "70%",
+    },
+    sheetHandle: {
+      width: 40, height: 4, backgroundColor: colors.border,
+      borderRadius: 2, alignSelf: "center", marginTop: 12, marginBottom: 4,
+    },
+    sheetTitle: {
+      fontSize: 14, fontFamily: "Inter_600SemiBold",
+      color: colors.mutedForeground, textAlign: "center",
+      letterSpacing: 0.5, textTransform: "uppercase",
+      paddingBottom: 8,
+    },
+    item: {
+      flexDirection: "row", alignItems: "center",
+      paddingHorizontal: 20, paddingVertical: 14, gap: 12,
+    },
+    itemBorder: { borderTopWidth: 1, borderTopColor: colors.border },
+    itemMain: { flex: 1, gap: 2 },
+    itemTitle: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
+    itemMeta: { fontSize: 12, fontFamily: "Inter_400Regular", color: colors.mutedForeground },
+    checkWrap: { width: 20, alignItems: "center" },
+  });
+
+  return (
+    <>
+      <Pressable style={s.trigger} onPress={() => setOpen(true)}>
+        <Feather name="calendar" size={16} color={colors.primary} />
+        <Text style={s.triggerLabel} numberOfLines={1}>{label}</Text>
+        <Feather name="chevron-down" size={16} color={colors.mutedForeground} />
+      </Pressable>
+
+      <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
+        <Pressable style={s.overlay} onPress={() => setOpen(false)}>
+          <Pressable style={s.sheet} onPress={(e) => e.stopPropagation()}>
+            <View style={s.sheetHandle} />
+            <Text style={s.sheetTitle}>Select Game</Text>
+            <FlatList
+              data={[null, ...games]}
+              keyExtractor={(item) => item?.id ?? "__all__"}
+              contentContainerStyle={{ paddingBottom: 40 }}
+              renderItem={({ item: game, index }) => {
+                const isAll = game === null;
+                const isSelected = isAll ? selectedId === null : selectedId === game.id;
+                const sName = !isAll && game.seasonId ? (seasonMap[game.seasonId] ?? "") : "";
+                return (
+                  <Pressable
+                    style={[s.item, index > 0 && s.itemBorder]}
+                    onPress={() => { onSelect(isAll ? null : game.id); setOpen(false); }}
+                  >
+                    <View style={s.itemMain}>
+                      {isAll ? (
+                        <Text style={[s.itemTitle, { color: colors.foreground }]}>All Games</Text>
+                      ) : (
+                        <>
+                          <Text style={[s.itemTitle, { color: colors.foreground }]}>
+                            {game.homeAway === "home" ? "vs" : "@"} {game.opponent ?? "TBD"}
+                            {game.isPlayoff ? "  🏆" : ""}
+                          </Text>
+                          <Text style={s.itemMeta}>
+                            {formatGameDate(game.date)}{sName ? `  ·  ${sName}` : ""}
+                          </Text>
+                        </>
+                      )}
+                    </View>
+                    <View style={s.checkWrap}>
+                      {isSelected && <Feather name="check" size={16} color={colors.primary} />}
+                    </View>
+                  </Pressable>
+                );
+              }}
+            />
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </>
+  );
+}
+
 export default function HistoryScreen() {
   const colors = useColors();
   const { activeAthleteId } = useApp();
   const [period, setPeriod] = useState<Period>("career");
+  const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
   const insets = useSafeAreaInsets();
   const topPadding = Platform.OS === "web" ? 67 : insets.top;
 
@@ -251,6 +448,33 @@ export default function HistoryScreen() {
       enabled: !!activeAthleteId,
     },
   });
+
+  const gamesParams = { athleteId: activeAthleteId ?? undefined };
+  const { data: allGames = [] } = useGetGames(gamesParams, {
+    query: {
+      queryKey: getGetGamesQueryKey(gamesParams),
+      enabled: !!activeAthleteId,
+    },
+  });
+
+  const seasonsParams = { athleteId: activeAthleteId ?? "" };
+  const { data: seasons = [] } = useGetSeasons(seasonsParams, {
+    query: {
+      queryKey: getGetSeasonsQueryKey(seasonsParams),
+      enabled: !!activeAthleteId,
+    },
+  });
+
+  const seasonMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    seasons.forEach((s) => { map[s.id] = s.name; });
+    return map;
+  }, [seasons]);
+
+  const selectedGame = useMemo(
+    () => (selectedGameId ? allGames.find((g) => g.id === selectedGameId) ?? null : null),
+    [selectedGameId, allGames],
+  );
 
   const periodIndex = PERIODS.findIndex((p) => p.key === period);
 
@@ -269,8 +493,14 @@ export default function HistoryScreen() {
   const { kicks, label } = useMemo(() => {
     switch (period) {
       case "game": {
-        const k = (allKicks as KickRecord[]).filter((k) => k.gameId != null);
-        return { kicks: k, label: "Game Stats" };
+        const base = (allKicks as KickRecord[]).filter((k) => k.gameId != null);
+        const k = selectedGameId ? base.filter((k) => k.gameId === selectedGameId) : base;
+        const lbl = selectedGameId
+          ? selectedGame
+            ? `${selectedGame.homeAway === "home" ? "vs" : "@"} ${selectedGame.opponent ?? "TBD"}`
+            : "Game Stats"
+          : "All Games";
+        return { kicks: k, label: lbl };
       }
       case "season": {
         const cutoff = startOfSeason();
@@ -285,7 +515,7 @@ export default function HistoryScreen() {
         return { kicks: k, label: "Career Summary" };
       }
     }
-  }, [allKicks, period]);
+  }, [allKicks, period, selectedGameId, selectedGame]);
 
   const stats = useMemo(() => computeStats(kicks), [kicks]);
 
@@ -299,11 +529,7 @@ export default function HistoryScreen() {
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
     },
-    headerTitle: {
-      fontSize: 22,
-      fontFamily: "Inter_700Bold",
-      color: colors.foreground,
-    },
+    headerTitle: { fontSize: 22, fontFamily: "Inter_700Bold", color: colors.foreground },
     scroll: { flex: 1 },
     content: { padding: 16, gap: 16, paddingBottom: 120 },
     segWrap: {
@@ -314,30 +540,15 @@ export default function HistoryScreen() {
       borderWidth: 1,
       borderColor: colors.border,
     },
-    segBtn: {
-      flex: 1,
-      paddingVertical: 9,
-      borderRadius: 9,
-      alignItems: "center",
-    },
-    segLabel: {
-      fontSize: 13,
-      fontFamily: "Inter_600SemiBold",
-      letterSpacing: 0.2,
-    },
+    segBtn: { flex: 1, paddingVertical: 9, borderRadius: 9, alignItems: "center" },
+    segLabel: { fontSize: 13, fontFamily: "Inter_600SemiBold", letterSpacing: 0.2 },
     periodHint: {
-      fontSize: 10,
-      fontFamily: "Inter_400Regular",
-      color: colors.mutedForeground,
-      textAlign: "center",
-      opacity: 0.6,
-      marginTop: 2,
+      fontSize: 10, fontFamily: "Inter_400Regular",
+      color: colors.mutedForeground, textAlign: "center", opacity: 0.6, marginTop: 2,
     },
     sectionHeader: {
-      fontSize: 15,
-      fontFamily: "Inter_700Bold",
-      color: colors.foreground,
-      marginBottom: 2,
+      fontSize: 15, fontFamily: "Inter_700Bold",
+      color: colors.foreground, marginBottom: 2,
     },
     statsGroup: { gap: 12 },
   });
@@ -350,6 +561,7 @@ export default function HistoryScreen() {
         </View>
         <AthleteBar />
         <ScrollView style={s.scroll} contentContainerStyle={s.content}>
+
           {/* Period selector */}
           <View>
             <View style={s.segWrap}>
@@ -365,10 +577,7 @@ export default function HistoryScreen() {
                   <Text
                     style={[
                       s.segLabel,
-                      {
-                        color:
-                          period === p.key ? colors.primaryForeground : colors.mutedForeground,
-                      },
+                      { color: period === p.key ? colors.primaryForeground : colors.mutedForeground },
                     ]}
                   >
                     {p.label}
@@ -379,7 +588,25 @@ export default function HistoryScreen() {
             <Text style={s.periodHint}>Swipe left/right to change period</Text>
           </View>
 
-          {/* Stats — three separate cards */}
+          {/* Game picker — only shown in Game period */}
+          {period === "game" && (
+            <GamePicker
+              games={allGames}
+              seasonMap={seasonMap}
+              selectedId={selectedGameId}
+              onSelect={setSelectedGameId}
+            />
+          )}
+
+          {/* Game info card — only when a specific game is selected */}
+          {period === "game" && selectedGame && (
+            <GameInfoCard
+              game={selectedGame}
+              seasonName={selectedGame.seasonId ? seasonMap[selectedGame.seasonId] : undefined}
+            />
+          )}
+
+          {/* Stats */}
           <Text style={s.sectionHeader}>{label}</Text>
           <View style={s.statsGroup}>
             <FGStatsCard stats={stats.fg} />
@@ -388,7 +615,10 @@ export default function HistoryScreen() {
           </View>
 
           {/* Recent kicks */}
-          <KickHistoryList />
+          <KickHistoryList
+            gameId={period === "game" && selectedGameId ? selectedGameId : undefined}
+          />
+
         </ScrollView>
       </View>
     </GestureDetector>
