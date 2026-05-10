@@ -95,12 +95,15 @@ function computeStats(kicks: KickRecord[]) {
   const patTotal = patKicks.length;
   const patMade = patKicks.filter((k) => (k.data as Record<string, unknown>)["outcome"] === "made").length;
 
+  const totalPoints = fgMade * 3 + patMade * 1;
+
   return {
     total: kicks.length,
     fg: { total: fgTotal, made: fgMade, avgDist: fgAvgDist, longest: fgLongest, gameWinners: fgGameWinners },
     punt: { total: puntTotal, avgDist: puntAvgDist, longest: puntLongest, avgHangtime: puntAvgHangtime },
     ko: { total: koTotal, touchbacks: koTouchbacks, avgHangtime: koAvgHangtime },
     pat: { total: patTotal, made: patMade },
+    totalPoints,
   };
 }
 
@@ -136,6 +139,44 @@ function SectionCard({ title, children, empty }: { title: string; children?: Rea
       <Text style={{ fontSize: 11, fontFamily: "Inter_600SemiBold", color: colors.mutedForeground, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>{title}</Text>
       <View style={{ backgroundColor: colors.card, borderRadius: 14, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 16, paddingVertical: empty ? 16 : 4 }}>
         {empty ? <Text style={{ color: colors.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 13, textAlign: "center" }}>No kicks recorded</Text> : children}
+      </View>
+    </View>
+  );
+}
+
+function KickingPointsCard({ fg, pat, totalPoints }: {
+  fg: ReturnType<typeof computeStats>["fg"];
+  pat: ReturnType<typeof computeStats>["pat"];
+  totalPoints: number;
+}) {
+  const colors = useColors();
+  if (fg.total === 0 && pat.total === 0) return null;
+  return (
+    <View>
+      <Text style={{ fontSize: 11, fontFamily: "Inter_600SemiBold", color: colors.mutedForeground, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>
+        Kicking Points
+      </Text>
+      <View style={{ backgroundColor: colors.card, borderRadius: 14, borderWidth: 1, borderColor: colors.border, overflow: "hidden" }}>
+        <View style={{ paddingHorizontal: 16, paddingVertical: 14, flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: colors.primary + "18" }}>
+          <Text style={{ fontSize: 15, fontFamily: "Inter_700Bold", color: colors.foreground }}>Total Points</Text>
+          <Text style={{ fontSize: 26, fontFamily: "Inter_700Bold", color: colors.primary }}>{totalPoints}</Text>
+        </View>
+        {fg.made > 0 && (
+          <View style={{ paddingHorizontal: 16, paddingVertical: 10, flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderTopWidth: 1, borderTopColor: colors.border }}>
+            <Text style={{ fontSize: 14, fontFamily: "Inter_400Regular", color: colors.mutedForeground }}>
+              Field Goals  <Text style={{ color: colors.foreground, fontFamily: "Inter_500Medium" }}>{fg.made} made</Text>  ×  3 pts
+            </Text>
+            <Text style={{ fontSize: 14, fontFamily: "Inter_600SemiBold", color: colors.foreground }}>{fg.made * 3} pts</Text>
+          </View>
+        )}
+        {pat.made > 0 && (
+          <View style={{ paddingHorizontal: 16, paddingVertical: 10, flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderTopWidth: 1, borderTopColor: colors.border }}>
+            <Text style={{ fontSize: 14, fontFamily: "Inter_400Regular", color: colors.mutedForeground }}>
+              PATs  <Text style={{ color: colors.foreground, fontFamily: "Inter_500Medium" }}>{pat.made} made</Text>  ×  1 pt
+            </Text>
+            <Text style={{ fontSize: 14, fontFamily: "Inter_600SemiBold", color: colors.foreground }}>{pat.made} pts</Text>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -404,6 +445,7 @@ export function HistoryScreenContent({ onClose }: { onClose: () => void }) {
             <>
               <Text style={{ fontSize: 15, fontFamily: "Inter_700Bold", color: colors.foreground, marginBottom: 2 }}>{label}</Text>
               <View style={{ gap: 12 }}>
+                <KickingPointsCard fg={stats.fg} pat={stats.pat} totalPoints={stats.totalPoints} />
                 <FGStatsCard stats={stats.fg} />
                 <PATStatsCard stats={stats.pat} />
                 <PuntStatsCard stats={stats.punt} />
