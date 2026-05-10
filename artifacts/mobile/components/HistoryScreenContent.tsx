@@ -91,11 +91,16 @@ function computeStats(kicks: KickRecord[]) {
     .filter((h): h is number => h != null && h > 0);
   const koAvgHangtime = koHangtimes.length > 0 ? koHangtimes.reduce((a, b) => a + b, 0) / koHangtimes.length : null;
 
+  const patKicks = kicks.filter((k) => k.kickType === "pat");
+  const patTotal = patKicks.length;
+  const patMade = patKicks.filter((k) => (k.data as Record<string, unknown>)["outcome"] === "made").length;
+
   return {
     total: kicks.length,
     fg: { total: fgTotal, made: fgMade, avgDist: fgAvgDist, longest: fgLongest, gameWinners: fgGameWinners },
     punt: { total: puntTotal, avgDist: puntAvgDist, longest: puntLongest, avgHangtime: puntAvgHangtime },
     ko: { total: koTotal, touchbacks: koTouchbacks, avgHangtime: koAvgHangtime },
+    pat: { total: patTotal, made: patMade },
   };
 }
 
@@ -158,6 +163,17 @@ function PuntStatsCard({ stats }: { stats: ReturnType<typeof computeStats>["punt
       {stats.avgDist != null && <><Divider /><StatRow label="Avg Distance" value={avg(stats.avgDist, "yd")} /></>}
       {stats.longest != null && <><Divider /><StatRow label="Longest Punt" value={`${stats.longest}yd`} /></>}
       {stats.avgHangtime != null && <><Divider /><StatRow label="Avg Hangtime" value={formatHangtime(stats.avgHangtime)} /></>}
+    </SectionCard>
+  );
+}
+
+function PATStatsCard({ stats }: { stats: ReturnType<typeof computeStats>["pat"] }) {
+  if (stats.total === 0) return <SectionCard title="PAT" empty />;
+  return (
+    <SectionCard title="PAT">
+      <StatRow label="Attempts" value={stats.total} />
+      <Divider /><StatRow label="Made" value={`${stats.made} / ${stats.total}`} />
+      <Divider /><StatRow label="PAT %" value={pct(stats.made, stats.total)} />
     </SectionCard>
   );
 }
@@ -389,6 +405,7 @@ export function HistoryScreenContent({ onClose }: { onClose: () => void }) {
               <Text style={{ fontSize: 15, fontFamily: "Inter_700Bold", color: colors.foreground, marginBottom: 2 }}>{label}</Text>
               <View style={{ gap: 12 }}>
                 <FGStatsCard stats={stats.fg} />
+                <PATStatsCard stats={stats.pat} />
                 <PuntStatsCard stats={stats.punt} />
                 <KOStatsCard stats={stats.ko} />
               </View>

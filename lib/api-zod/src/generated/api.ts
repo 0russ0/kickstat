@@ -281,7 +281,7 @@ export const getKicksQueryLimitDefault = 10;
 
 export const GetKicksQueryParams = zod.object({
   athleteId: zod.coerce.string().optional(),
-  kickType: zod.enum(["field_goal", "punt", "kickoff"]).optional(),
+  kickType: zod.enum(["field_goal", "punt", "kickoff", "pat"]).optional(),
   gameId: zod.coerce.string().optional(),
   practiceOnly: zod.coerce.boolean().optional(),
   practiceSessionId: zod.coerce.string().optional(),
@@ -293,7 +293,7 @@ export const GetKicksResponseItem = zod.object({
   athleteId: zod.string(),
   gameId: zod.string().nullish(),
   practiceSessionId: zod.string().nullish(),
-  kickType: zod.enum(["field_goal", "punt", "kickoff"]),
+  kickType: zod.enum(["field_goal", "punt", "kickoff", "pat"]),
   data: zod.object({}).passthrough(),
   isGameWinner: zod.boolean(),
   createdAt: zod.string(),
@@ -307,7 +307,7 @@ export const CreateKickBody = zod.object({
   athleteId: zod.string(),
   gameId: zod.string().nullish(),
   practiceSessionId: zod.string().nullish(),
-  kickType: zod.enum(["field_goal", "punt", "kickoff"]),
+  kickType: zod.enum(["field_goal", "punt", "kickoff", "pat"]),
   data: zod.object({}).passthrough(),
   isGameWinner: zod.boolean().optional(),
 });

@@ -74,6 +74,11 @@ function formatKickSummary(kick: Kick): string {
     return `${tbStr} · ${formatHangtime(ht)}`;
   }
 
+  if (kick.kickType === "pat") {
+    const outcome = d["outcome"] as string;
+    return outcome === "made" ? "✓ Made" : "✗ Missed";
+  }
+
   return "";
 }
 
@@ -81,6 +86,7 @@ function getKickTypeLabel(type: string): string {
   if (type === "field_goal") return "FG";
   if (type === "punt") return "Punt";
   if (type === "kickoff") return "KO";
+  if (type === "pat") return "PAT";
   return type;
 }
 
@@ -99,7 +105,7 @@ function KickRow({ kick, onDelete, onEdit }: KickRowProps) {
   const colors = useColors();
   const d = kick.data as Record<string, unknown>;
   const isBad =
-    kick.kickType === "field_goal"
+    kick.kickType === "field_goal" || kick.kickType === "pat"
       ? d["outcome"] !== "made"
       : kick.kickType === "punt"
         ? d["badSnap"] === true || ["blocked"].includes((d["result"] as string) ?? "")

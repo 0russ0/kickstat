@@ -567,7 +567,7 @@ components:
 
     KickType:
       type: string
-      enum: [field_goal, punt, kickoff]
+      enum: [field_goal, punt, kickoff, pat]
 
     Athlete:
       type: object
@@ -816,6 +816,19 @@ components:
       required:
         - touchback
         - hangtime
+
+    PatData:
+      type: object
+      properties:
+        outcome:
+          type: string
+          enum: [made, missed]
+        missType:
+          type: string
+          enum: [left, right, short, blocked, bad_snap]
+          nullable: true
+      required:
+        - outcome
 
     PracticeSession:
       type: object

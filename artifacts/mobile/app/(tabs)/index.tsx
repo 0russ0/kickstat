@@ -40,6 +40,7 @@ export default function FieldGoalScreen() {
   const [badSnap, setBadSnap] = useState(false);
   const [isGameWinner, setIsGameWinner] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [patSubmitting, setPatSubmitting] = useState<"made" | "missed" | null>(null);
 
   const totalDistance = los ? Number(los) + 17 : null;
 
@@ -49,6 +50,37 @@ export default function FieldGoalScreen() {
     setMissType(null);
     setBadSnap(false);
     setIsGameWinner(false);
+  };
+
+  const handlePatSubmit = async (patOutcome: "made" | "missed") => {
+    if (!activeAthleteId) {
+      Alert.alert("No Athlete", "Please select an athlete first.");
+      return;
+    }
+    if (kickMode === "game" && !activeGame) {
+      Alert.alert("No Game Selected", "Please select a game or switch to Practice mode.");
+      return;
+    }
+    setPatSubmitting(patOutcome);
+    try {
+      await recordKick({
+        athleteId: activeAthleteId,
+        gameId: kickMode === "game" && activeGame ? activeGame.id : null,
+        practiceSessionId: kickMode === "practice" && activePracticeSession ? activePracticeSession.id : null,
+        kickType: "pat",
+        isGameWinner: false,
+        data: { outcome: patOutcome },
+      });
+      Haptics.notificationAsync(
+        patOutcome === "made"
+          ? Haptics.NotificationFeedbackType.Success
+          : Haptics.NotificationFeedbackType.Error,
+      );
+    } catch {
+      Alert.alert("Error", "Failed to save PAT.");
+    } finally {
+      setPatSubmitting(null);
+    }
   };
 
   const handleSubmit = async () => {
@@ -327,6 +359,45 @@ export default function FieldGoalScreen() {
               {submitting ? "Saving..." : "Record Kick"}
             </Text>
           </Pressable>
+
+          {/* PAT card */}
+          <View style={s.card}>
+            <Text style={s.cardTitle}>PAT — Point After Touchdown</Text>
+            <View style={s.outcomesRow}>
+              <Pressable
+                style={[
+                  s.outcomeBtn,
+                  {
+                    backgroundColor: patSubmitting === "made" ? colors.success : colors.secondary,
+                    borderColor: patSubmitting === "made" ? colors.success : colors.border,
+                    opacity: patSubmitting !== null ? 0.7 : 1,
+                  },
+                ]}
+                onPress={() => handlePatSubmit("made")}
+                disabled={patSubmitting !== null}
+              >
+                <Text style={[s.outcomeBtnText, { color: patSubmitting === "made" ? "#fff" : colors.mutedForeground }]}>
+                  {patSubmitting === "made" ? "Saving…" : "✓  Made"}
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[
+                  s.outcomeBtn,
+                  {
+                    backgroundColor: patSubmitting === "missed" ? colors.destructive : colors.secondary,
+                    borderColor: patSubmitting === "missed" ? colors.destructive : colors.border,
+                    opacity: patSubmitting !== null ? 0.7 : 1,
+                  },
+                ]}
+                onPress={() => handlePatSubmit("missed")}
+                disabled={patSubmitting !== null}
+              >
+                <Text style={[s.outcomeBtnText, { color: patSubmitting === "missed" ? "#fff" : colors.mutedForeground }]}>
+                  {patSubmitting === "missed" ? "Saving…" : "✗  Missed"}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
 
           <KickHistoryList kickType="field_goal" gameId={kickMode === "game" && activeGame ? activeGame.id : undefined} />
         </ScrollView>

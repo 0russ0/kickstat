@@ -23,6 +23,7 @@ export const KickType = {
   field_goal: "field_goal",
   punt: "punt",
   kickoff: "kickoff",
+  pat: "pat",
 } as const;
 
 export interface Athlete {
@@ -223,6 +224,31 @@ export interface KickoffData {
   hangtime: number;
   landingYard?: number | null;
   returnYards?: number | null;
+}
+
+export type PatDataOutcome =
+  (typeof PatDataOutcome)[keyof typeof PatDataOutcome];
+
+export const PatDataOutcome = {
+  made: "made",
+  missed: "missed",
+} as const;
+
+export type PatDataMissType =
+  | (typeof PatDataMissType)[keyof typeof PatDataMissType]
+  | null;
+
+export const PatDataMissType = {
+  left: "left",
+  right: "right",
+  short: "short",
+  blocked: "blocked",
+  bad_snap: "bad_snap",
+} as const;
+
+export interface PatData {
+  outcome: PatDataOutcome;
+  missType?: PatDataMissType;
 }
 
 export interface PracticeSession {
