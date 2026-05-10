@@ -67,6 +67,7 @@ export default function FieldGoalScreen() {
       Alert.alert("Missing Info", "Please select a miss type or mark as Bad Snap.");
       return;
     }
+
     if (kickMode === "game" && !activeGame) {
       Alert.alert("No Game Selected", "Please select a game or switch to Practice mode.");
       return;
@@ -84,7 +85,7 @@ export default function FieldGoalScreen() {
           totalDistance: Number(los) + 17,
           outcome,
           missType: outcome === "missed" ? (missType ?? null) : null,
-          badSnap: outcome === "missed" ? badSnap : false,
+          badSnap,
         },
       });
       Haptics.notificationAsync(
@@ -254,47 +255,48 @@ export default function FieldGoalScreen() {
             </View>
 
             {outcome === "missed" && (
-              <>
-                <View>
-                  <Text style={[s.cardTitle, { marginBottom: 8 }]}>Miss Type</Text>
-                  <View style={s.missGrid}>
-                    {MISS_TYPES.map((m) => (
-                      <Pressable
-                        key={m.value}
-                        style={[
-                          s.missBtn,
-                          {
-                            backgroundColor: missType === m.value ? colors.primary : colors.secondary,
-                            borderColor: missType === m.value ? colors.primary : colors.border,
-                          },
-                        ]}
-                        onPress={() => setMissType(missType === m.value ? null : m.value)}
-                      >
-                        <Text style={[s.missBtnText, { color: missType === m.value ? "#fff" : colors.mutedForeground }]}>
-                          {m.label}
-                        </Text>
-                      </Pressable>
-                    ))}
-                  </View>
+              <View>
+                <Text style={[s.cardTitle, { marginBottom: 8 }]}>Miss Type</Text>
+                <View style={s.missGrid}>
+                  {MISS_TYPES.map((m) => (
+                    <Pressable
+                      key={m.value}
+                      style={[
+                        s.missBtn,
+                        {
+                          backgroundColor: missType === m.value ? colors.primary : colors.secondary,
+                          borderColor: missType === m.value ? colors.primary : colors.border,
+                        },
+                      ]}
+                      onPress={() => setMissType(missType === m.value ? null : m.value)}
+                    >
+                      <Text style={[s.missBtnText, { color: missType === m.value ? "#fff" : colors.mutedForeground }]}>
+                        {m.label}
+                      </Text>
+                    </Pressable>
+                  ))}
                 </View>
+              </View>
+            )}
 
-                <Pressable style={s.badSnapRow} onPress={() => setBadSnap(!badSnap)}>
-                  <View
-                    style={[
-                      s.checkBox,
-                      {
-                        backgroundColor: badSnap ? colors.warning : "transparent",
-                        borderColor: badSnap ? colors.warning : colors.border,
-                      },
-                    ]}
-                  >
-                    {badSnap && <Feather name="check" size={14} color="#fff" />}
-                  </View>
-                  <Text style={[s.badSnapLabel, { color: badSnap ? colors.warning : colors.foreground }]}>
-                    Bad Snap
-                  </Text>
-                </Pressable>
-              </>
+            {/* Bad Snap — visible for both Made and Missed */}
+            {outcome !== null && (
+              <Pressable style={s.badSnapRow} onPress={() => setBadSnap(!badSnap)}>
+                <View
+                  style={[
+                    s.checkBox,
+                    {
+                      backgroundColor: badSnap ? colors.warning : "transparent",
+                      borderColor: badSnap ? colors.warning : colors.border,
+                    },
+                  ]}
+                >
+                  {badSnap && <Feather name="check" size={14} color="#fff" />}
+                </View>
+                <Text style={[s.badSnapLabel, { color: badSnap ? colors.warning : colors.foreground }]}>
+                  Bad Snap
+                </Text>
+              </Pressable>
             )}
 
             {/* Game winner toggle — only visible in game mode after Made */}

@@ -8,13 +8,7 @@ import { formatHangtime } from "@/hooks/useStopwatch";
 import { useGetKicks, getGetKicksQueryKey } from "@workspace/api-client-react";
 import type { Kick } from "@workspace/api-client-react";
 
-type Period = "game" | "season" | "career";
-
-function startOfToday(): Date {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
+type Period = "practice" | "game" | "season" | "career";
 
 function startOfSeason(): Date {
   const now = new Date();
@@ -22,22 +16,18 @@ function startOfSeason(): Date {
   return new Date(year, 7, 1); // Aug 1
 }
 
-function computeStats(kicks: Kick[], start: Date | null) {
-  const filtered = start
-    ? kicks.filter((k) => new Date(k.createdAt) >= start)
-    : kicks;
-
-  const fgKicks = filtered.filter((k) => k.kickType === "field_goal");
-  const puntKicks = filtered.filter((k) => k.kickType === "punt");
-  const koKicks = filtered.filter((k) => k.kickType === "kickoff");
+function computeStats(kicks: Kick[]) {
+  const fgKicks = kicks.filter((k) => k.kickType === "field_goal");
+  const puntKicks = kicks.filter((k) => k.kickType === "punt");
+  const koKicks = kicks.filter((k) => k.kickType === "kickoff");
 
   const fgTotal = fgKicks.length;
   const fgMade = fgKicks.filter(
     (k) => (k.data as Record<string, unknown>)["outcome"] === "made",
   ).length;
-  const fgDistances = fgKicks.map(
-    (k) => (k.data as Record<string, unknown>)["totalDistance"] as number,
-  ).filter((d) => d != null && !isNaN(d));
+  const fgDistances = fgKicks
+    .map((k) => (k.data as Record<string, unknown>)["totalDistance"] as number)
+    .filter((d) => d != null && !isNaN(d));
   const fgAvgDist =
     fgDistances.length > 0
       ? fgDistances.reduce((a, b) => a + b, 0) / fgDistances.length
@@ -72,7 +62,7 @@ function computeStats(kicks: Kick[], start: Date | null) {
       : null;
 
   return {
-    total: filtered.length,
+    total: kicks.length,
     fg: { total: fgTotal, made: fgMade, avgDist: fgAvgDist },
     punt: { total: puntTotal, avgDist: puntAvgDist, avgHangtime: puntAvgHangtime },
     ko: { total: koTotal, touchbacks: koTouchbacks, avgHangtime: koAvgHangtime },
@@ -136,10 +126,7 @@ function StatsSection({
       paddingVertical: 4,
       marginBottom: 2,
     },
-    divider: {
-      height: 1,
-      backgroundColor: colors.border,
-    },
+    divider: { height: 1, backgroundColor: colors.border },
   });
 
   if (stats.total === 0) {
@@ -220,13 +207,9 @@ function StatsSection({
 export default function HistoryScreen() {
   const colors = useColors();
   const { activeAthleteId } = useApp();
-  const [period, setPeriod] = useState<Period>("season");
+  const [period, setPeriod] = useState<Period>("career");
 
-  const allKicksParams = {
-    athleteId: activeAthleteId ?? undefined,
-    limit: 1000,
-  };
-
+  const allKicksParams = { athleteId: activeAthleteId ?? undefined, limit: 1000 };
   const { data: allKicks = [] } = useGetKicks(allKicksParams, {
     query: {
       queryKey: getGetKicksQueryKey(allKicksParams),
@@ -234,14 +217,28 @@ export default function HistoryScreen() {
     },
   });
 
-  const stats = useMemo(() => {
-    const startMap: Record<Period, Date | null> = {
-      game: startOfToday(),
-      season: startOfSeason(),
-      career: null,
-    };
-    return computeStats(allKicks, startMap[period]);
+  const { kicks, label, historyFilter } = useMemo(() => {
+    switch (period) {
+      case "practice": {
+        const k = allKicks.filter((k) => k.gameId == null);
+        return { kicks: k, label: "Practice Stats", historyFilter: { practiceOnly: true } };
+      }
+      case "game": {
+        const k = allKicks.filter((k) => k.gameId != null);
+        return { kicks: k, label: "Game Stats", historyFilter: {} };
+      }
+      case "season": {
+        const cutoff = startOfSeason();
+        const k = allKicks.filter((k) => new Date(k.createdAt) >= cutoff);
+        return { kicks: k, label: `Season Stats (Aug ${cutoff.getFullYear()} – Present)`, historyFilter: {} };
+      }
+      case "career":
+      default:
+        return { kicks: allKicks, label: "Career Stats", historyFilter: {} };
+    }
   }, [allKicks, period]);
+
+  const stats = useMemo(() => computeStats(kicks), [kicks]);
 
   const s = StyleSheet.create({
     screen: { flex: 1, backgroundColor: colors.background },
@@ -254,7 +251,6 @@ export default function HistoryScreen() {
       padding: 3,
       borderWidth: 1,
       borderColor: colors.border,
-      marginBottom: 4,
     },
     segBtn: {
       flex: 1,
@@ -263,38 +259,26 @@ export default function HistoryScreen() {
       alignItems: "center",
     },
     segLabel: {
-      fontSize: 13,
+      fontSize: 12,
       fontFamily: "Inter_600SemiBold",
       letterSpacing: 0.2,
-    },
-    divider: {
-      height: 1,
-      backgroundColor: colors.border,
-      marginVertical: 4,
-    },
-    noAthlete: {
-      flex: 1,
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 8,
-    },
-    noAthleteText: {
-      fontSize: 14,
-      fontFamily: "Inter_400Regular",
     },
   });
 
   const PERIODS: { key: Period; label: string }[] = [
+    { key: "practice", label: "Practice" },
     { key: "game", label: "Game" },
     { key: "season", label: "Season" },
     { key: "career", label: "Career" },
   ];
 
+  const historyGameId = period === "game" ? undefined : undefined;
+  const historyPracticeOnly = period === "practice" ? true : undefined;
+
   return (
     <View style={s.screen}>
       <AthleteBar />
       <ScrollView style={s.scroll} contentContainerStyle={s.content}>
-        {/* Period selector */}
         <View style={s.segmentWrap}>
           {PERIODS.map((p) => (
             <Pressable
@@ -317,18 +301,11 @@ export default function HistoryScreen() {
           ))}
         </View>
 
-        <StatsSection
-          label={
-            period === "game"
-              ? "Today's Stats"
-              : period === "season"
-                ? "Season Stats  (Aug – present)"
-                : "Career Stats"
-          }
-          stats={stats}
-        />
+        <StatsSection label={label} stats={stats} />
 
-        <KickHistoryList />
+        <KickHistoryList
+          practiceOnly={historyPracticeOnly}
+        />
       </ScrollView>
     </View>
   );
