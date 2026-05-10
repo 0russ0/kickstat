@@ -37,7 +37,7 @@ export default function FieldGoalScreen() {
   const [missType, setMissType] = useState<MissType | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const totalDistance = los ? Number(los) + 10 : null;
+  const totalDistance = los ? Number(los) + 17 : null;
 
   const reset = () => {
     setLos("");
@@ -70,7 +70,7 @@ export default function FieldGoalScreen() {
         kickType: "field_goal",
         data: {
           los: Number(los),
-          totalDistance: Number(los) + 10,
+          totalDistance: Number(los) + 17,
           outcome,
           missType: outcome === "missed" ? missType : null,
         },
@@ -189,28 +189,17 @@ export default function FieldGoalScreen() {
           <View style={s.card}>
             <Text style={s.cardTitle}>Field Goal</Text>
 
-            <View style={s.losRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={[s.cardTitle, { marginBottom: 6 }]}>LOS</Text>
-                <TextInput
-                  style={s.input}
-                  value={los}
-                  onChangeText={setLos}
-                  placeholder="—"
-                  placeholderTextColor={colors.mutedForeground}
-                  keyboardType="numeric"
-                  maxLength={3}
-                />
-              </View>
-              <Text style={[s.arrow, { marginTop: 20 }]}>+10 →</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={[s.cardTitle, { marginBottom: 6 }]}>Total Dist</Text>
-                <View style={[s.distanceBox, { paddingVertical: 12.5 }]}>
-                  <Text style={s.distanceValue}>
-                    {totalDistance !== null ? `${totalDistance}yd` : "—"}
-                  </Text>
-                </View>
-              </View>
+            <View>
+              <Text style={[s.cardTitle, { marginBottom: 6 }]}>LOS</Text>
+              <TextInput
+                style={s.input}
+                value={los}
+                onChangeText={setLos}
+                placeholder="—"
+                placeholderTextColor={colors.mutedForeground}
+                keyboardType="numeric"
+                maxLength={3}
+              />
             </View>
 
             <View>
