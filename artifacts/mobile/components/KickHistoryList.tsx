@@ -11,8 +11,19 @@ interface Props {
   kickType?: KickType;
 }
 
+const RESULT_LABELS: Record<string, string> = {
+  out_of_bounds: "Out of Bounds",
+  touchback: "Touchback",
+  blocked: "Blocked",
+  bad_snap: "Bad Snap",
+  fair_catch: "Fair Catch",
+  downed: "Downed",
+  punt_return: "Punt Return",
+};
+
 function formatKickSummary(kick: Kick): string {
   const d = kick.data as Record<string, unknown>;
+
   if (kick.kickType === "field_goal") {
     const outcome = d["outcome"] as string;
     const los = d["los"] as number;
@@ -21,18 +32,41 @@ function formatKickSummary(kick: Kick): string {
     const outcomeStr = outcome === "made" ? "✓ Made" : `✗ ${missType ?? "Missed"}`;
     return `${outcomeStr} · ${totalDist}yd (LOS ${los})`;
   }
+
   if (kick.kickType === "punt") {
-    const dist = d["distance"] as number;
+    const dist = d["distance"] as number | null | undefined;
     const ht = d["hangtime"] as number;
-    return `${dist}yd · ${formatHangtime(ht)}`;
+    const result = d["result"] as string | null | undefined;
+    const returnYards = d["returnYards"] as number | null | undefined;
+
+    let distStr: string;
+    if (dist != null && dist > 0) {
+      distStr = `${dist}yd`;
+    } else if (result) {
+      distStr = RESULT_LABELS[result] ?? result;
+    } else {
+      distStr = "—";
+    }
+
+    let suffix = ` · ${formatHangtime(ht)}`;
+    if (result === "punt_return" && returnYards != null) {
+      suffix += ` · ${returnYards}yd ret`;
+    }
+
+    return `${distStr}${suffix}`;
   }
+
   if (kick.kickType === "kickoff") {
     const tb = d["touchback"] as boolean;
     const ht = d["hangtime"] as number;
     const tbType = d["touchbackType"] as string | undefined;
-    const tbStr = tb ? `Touchback${tbType ? ` (${tbType.replace("_", " ")})` : ""}` : "Returned";
+    const returnYards = d["returnYards"] as number | null | undefined;
+    const tbStr = tb
+      ? `Touchback${tbType ? ` (${tbType.replace("_", " ")})` : ""}`
+      : `Returned${returnYards != null ? ` ${returnYards}yd` : ""}`;
     return `${tbStr} · ${formatHangtime(ht)}`;
   }
+
   return "";
 }
 
@@ -56,20 +90,26 @@ interface KickRowProps {
 
 function KickRow({ kick, onDelete, showType }: KickRowProps) {
   const colors = useColors();
-  const isGood =
+  const d = kick.data as Record<string, unknown>;
+  const isBad =
     kick.kickType === "field_goal"
-      ? (kick.data as Record<string, unknown>)["outcome"] === "made"
-      : true;
+      ? d["outcome"] !== "made"
+      : kick.kickType === "punt"
+        ? ["blocked", "bad_snap"].includes((d["result"] as string) ?? "")
+        : false;
 
   return (
     <View style={[rowStyles.container, { backgroundColor: colors.card, borderColor: colors.border }]}>
       <View style={[rowStyles.typeTag, { backgroundColor: colors.secondary }]}>
         <Text style={[rowStyles.typeText, { color: colors.mutedForeground }]}>
-          {getKickTypeLabel(kick.kickType)}
+          {showType ? getKickTypeLabel(kick.kickType) : getKickTypeLabel(kick.kickType)}
         </Text>
       </View>
       <View style={rowStyles.info}>
-        <Text style={[rowStyles.summary, { color: isGood ? colors.foreground : colors.destructive }]} numberOfLines={1}>
+        <Text
+          style={[rowStyles.summary, { color: isBad ? colors.destructive : colors.foreground }]}
+          numberOfLines={1}
+        >
           {formatKickSummary(kick)}
         </Text>
         <Text style={[rowStyles.time, { color: colors.mutedForeground }]}>
@@ -144,7 +184,9 @@ export function KickHistoryList({ kickType }: Props) {
     return (
       <View style={[listStyles.empty, { borderColor: colors.border }]}>
         <Feather name="user" size={24} color={colors.mutedForeground} />
-        <Text style={[listStyles.emptyText, { color: colors.mutedForeground }]}>Select an athlete above</Text>
+        <Text style={[listStyles.emptyText, { color: colors.mutedForeground }]}>
+          Select an athlete above
+        </Text>
       </View>
     );
   }
@@ -183,9 +225,7 @@ export function KickHistoryList({ kickType }: Props) {
 }
 
 const listStyles = StyleSheet.create({
-  wrapper: {
-    gap: 4,
-  },
+  wrapper: { gap: 4 },
   heading: {
     fontSize: 11,
     fontFamily: "Inter_500Medium",
