@@ -24,6 +24,7 @@ interface AppContextValue {
   removeAthlete: (id: string) => Promise<void>;
   recordKick: (body: CreateKickBody) => Promise<void>;
   removeKick: (id: string) => Promise<void>;
+  editKick: (id: string, data: Record<string, unknown>, isGameWinner?: boolean) => Promise<void>;
   kickMode: KickMode;
   setKickMode: (mode: KickMode) => void;
   activeGame: Game | null;
@@ -107,6 +108,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [deleteKickMutation, queryClient]);
 
+  const editKick = useCallback(async (id: string, data: Record<string, unknown>, isGameWinner?: boolean) => {
+    setIsSyncing(true);
+    try {
+      const body: Record<string, unknown> = { data };
+      if (typeof isGameWinner === "boolean") body["isGameWinner"] = isGameWinner;
+      await fetch(`/api/kicks/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      queryClient.invalidateQueries({ queryKey: getGetKicksQueryKey() });
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [queryClient]);
+
   return (
     <AppContext.Provider
       value={{
@@ -119,6 +136,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         removeAthlete,
         recordKick,
         removeKick,
+        editKick,
         kickMode,
         setKickMode,
         activeGame,

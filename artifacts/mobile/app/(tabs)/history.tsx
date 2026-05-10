@@ -229,12 +229,14 @@ export default function HistoryScreen() {
       }
       case "season": {
         const cutoff = startOfSeason();
-        const k = allKicks.filter((k) => new Date(k.createdAt) >= cutoff);
+        const k = allKicks.filter((k) => k.gameId != null && new Date(k.createdAt) >= cutoff);
         return { kicks: k, label: `Season Stats (Aug ${cutoff.getFullYear()} – Present)`, historyFilter: {} };
       }
       case "career":
-      default:
-        return { kicks: allKicks, label: "Career Stats", historyFilter: {} };
+      default: {
+        const k = allKicks.filter((kk) => kk.gameId != null);
+        return { kicks: k, label: "Career Stats (Games Only)", historyFilter: {} };
+      }
     }
   }, [allKicks, period]);
 

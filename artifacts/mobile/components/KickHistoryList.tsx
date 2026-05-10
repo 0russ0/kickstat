@@ -1,11 +1,12 @@
-import React from "react";
-import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import React, { useState } from "react";
+import { Alert, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useGetKicks, getGetKicksQueryKey } from "@workspace/api-client-react";
 import type { Kick, KickType } from "@workspace/api-client-react";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { formatHangtime } from "@/hooks/useStopwatch";
+import { EditKickModal } from "@/components/EditKickModal";
 
 interface Props {
   kickType?: KickType;
@@ -31,7 +32,8 @@ function formatKickSummary(kick: Kick): string {
     const los = d["los"] as number;
     const totalDist = d["totalDistance"] as number;
     const missType = d["missType"] as string | undefined;
-    const outcomeStr = outcome === "made" ? "✓ Made" : `✗ ${missType ?? "Missed"}`;
+    const badSnap = d["badSnap"] ? " (Bad Snap)" : "";
+    const outcomeStr = outcome === "made" ? `✓ Made${badSnap}` : `✗ ${missType ?? "Missed"}${badSnap}`;
     return `${outcomeStr} · ${totalDist}yd (LOS ${los})`;
   }
 
@@ -39,6 +41,7 @@ function formatKickSummary(kick: Kick): string {
     const dist = d["distance"] as number | null | undefined;
     const ht = d["hangtime"] as number;
     const result = d["result"] as string | null | undefined;
+    const badSnap = d["badSnap"] ? " · Bad Snap" : "";
     const returnYards = d["returnYards"] as number | null | undefined;
 
     let distStr: string;
@@ -50,7 +53,7 @@ function formatKickSummary(kick: Kick): string {
       distStr = "—";
     }
 
-    let suffix = ` · ${formatHangtime(ht)}`;
+    let suffix = ` · ${formatHangtime(ht)}${badSnap}`;
     if (result === "punt_return" && returnYards != null) {
       suffix += ` · ${returnYards}yd ret`;
     }
@@ -87,24 +90,24 @@ function formatTime(dateStr: string): string {
 interface KickRowProps {
   kick: Kick;
   onDelete: (id: string) => void;
-  showType?: boolean;
+  onEdit: (kick: Kick) => void;
 }
 
-function KickRow({ kick, onDelete, showType }: KickRowProps) {
+function KickRow({ kick, onDelete, onEdit }: KickRowProps) {
   const colors = useColors();
   const d = kick.data as Record<string, unknown>;
   const isBad =
     kick.kickType === "field_goal"
       ? d["outcome"] !== "made"
       : kick.kickType === "punt"
-        ? ["blocked", "bad_snap"].includes((d["result"] as string) ?? "")
+        ? d["badSnap"] === true || ["blocked"].includes((d["result"] as string) ?? "")
         : false;
 
   return (
     <View style={[rowStyles.container, { backgroundColor: colors.card, borderColor: colors.border }]}>
       <View style={[rowStyles.typeTag, { backgroundColor: colors.secondary }]}>
         <Text style={[rowStyles.typeText, { color: colors.mutedForeground }]}>
-          {showType ? getKickTypeLabel(kick.kickType) : getKickTypeLabel(kick.kickType)}
+          {getKickTypeLabel(kick.kickType)}
         </Text>
       </View>
       <View style={rowStyles.info}>
@@ -113,12 +116,16 @@ function KickRow({ kick, onDelete, showType }: KickRowProps) {
           numberOfLines={1}
         >
           {formatKickSummary(kick)}
+          {kick.isGameWinner ? " 🏆" : ""}
         </Text>
         <Text style={[rowStyles.time, { color: colors.mutedForeground }]}>
           {formatTime(kick.createdAt)}
         </Text>
       </View>
-      <Pressable style={rowStyles.deleteBtn} onPress={() => onDelete(kick.id)} hitSlop={8}>
+      <Pressable style={rowStyles.actionBtn} onPress={() => onEdit(kick)} hitSlop={8}>
+        <Feather name="edit-2" size={14} color={colors.primary} />
+      </Pressable>
+      <Pressable style={rowStyles.actionBtn} onPress={() => onDelete(kick.id)} hitSlop={8}>
         <Feather name="trash-2" size={15} color={colors.destructive} />
       </Pressable>
     </View>
@@ -133,7 +140,7 @@ const rowStyles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    gap: 10,
+    gap: 8,
     marginBottom: 6,
   },
   typeTag: {
@@ -153,14 +160,14 @@ const rowStyles = StyleSheet.create({
     gap: 2,
   },
   summary: {
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: "Inter_500Medium",
   },
   time: {
     fontSize: 11,
     fontFamily: "Inter_400Regular",
   },
-  deleteBtn: {
+  actionBtn: {
     padding: 4,
   },
 });
@@ -168,6 +175,7 @@ const rowStyles = StyleSheet.create({
 export function KickHistoryList({ kickType, practiceOnly, gameId }: Props) {
   const colors = useColors();
   const { activeAthleteId, removeKick } = useApp();
+  const [editingKick, setEditingKick] = useState<Kick | null>(null);
 
   const params = {
     athleteId: activeAthleteId ?? undefined,
@@ -184,6 +192,25 @@ export function KickHistoryList({ kickType, practiceOnly, gameId }: Props) {
     },
   });
 
+  const handleReset = () => {
+    Alert.alert(
+      "Reset Practice Kicks",
+      `Delete all ${kickType ? kickType.replace("_", " ") : ""} practice kicks for this athlete? This cannot be undone.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Reset",
+          style: "destructive",
+          onPress: async () => {
+            for (const kick of kicks) {
+              await removeKick(kick.id);
+            }
+          },
+        },
+      ],
+    );
+  };
+
   if (!activeAthleteId) {
     return (
       <View style={[listStyles.empty, { borderColor: colors.border }]}>
@@ -198,7 +225,7 @@ export function KickHistoryList({ kickType, practiceOnly, gameId }: Props) {
   if (isLoading) {
     return (
       <View style={[listStyles.empty, { borderColor: colors.border }]}>
-        <Text style={[listStyles.emptyText, { color: colors.mutedForeground }]}>Loading...</Text>
+        <Text style={[listStyles.emptyText, { color: colors.mutedForeground }]}>Loading…</Text>
       </View>
     );
   }
@@ -213,29 +240,59 @@ export function KickHistoryList({ kickType, practiceOnly, gameId }: Props) {
   }
 
   return (
-    <View style={listStyles.wrapper}>
-      <Text style={[listStyles.heading, { color: colors.mutedForeground }]}>Recent Kicks</Text>
-      <FlatList
-        data={kicks}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <KickRow kick={item} onDelete={removeKick} showType={!kickType} />
-        )}
-        scrollEnabled={false}
-        showsVerticalScrollIndicator={false}
-      />
-    </View>
+    <>
+      <View style={listStyles.wrapper}>
+        <View style={listStyles.headingRow}>
+          <Text style={[listStyles.heading, { color: colors.mutedForeground }]}>Recent Kicks</Text>
+          {practiceOnly && kicks.length > 0 && (
+            <Pressable style={[listStyles.resetBtn, { borderColor: colors.destructive }]} onPress={handleReset}>
+              <Feather name="trash-2" size={12} color={colors.destructive} />
+              <Text style={[listStyles.resetBtnText, { color: colors.destructive }]}>Reset</Text>
+            </Pressable>
+          )}
+        </View>
+        <FlatList
+          data={kicks}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <KickRow kick={item} onDelete={removeKick} onEdit={setEditingKick} />
+          )}
+          scrollEnabled={false}
+          showsVerticalScrollIndicator={false}
+        />
+      </View>
+
+      <EditKickModal kick={editingKick} onClose={() => setEditingKick(null)} />
+    </>
   );
 }
 
 const listStyles = StyleSheet.create({
   wrapper: { gap: 4 },
+  headingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 4,
+  },
   heading: {
     fontSize: 11,
     fontFamily: "Inter_500Medium",
     letterSpacing: 1,
     textTransform: "uppercase",
-    marginBottom: 4,
+  },
+  resetBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  resetBtnText: {
+    fontSize: 12,
+    fontFamily: "Inter_600SemiBold",
   },
   empty: {
     alignItems: "center",

@@ -106,6 +106,35 @@ router.post("/kicks", async (req, res) => {
   });
 });
 
+router.patch("/kicks/:id", async (req, res) => {
+  const { id } = req.params;
+  const { data, isGameWinner } = req.body as { data?: unknown; isGameWinner?: boolean };
+  if (!data) {
+    res.status(400).json({ error: "data is required" });
+    return;
+  }
+  const updateFields: Record<string, unknown> = { data };
+  if (typeof isGameWinner === "boolean") updateFields["isGameWinner"] = isGameWinner;
+  const [updated] = await db
+    .update(kicksTable)
+    .set(updateFields)
+    .where(eq(kicksTable.id, id))
+    .returning();
+  if (!updated) {
+    res.status(404).json({ error: "Kick not found" });
+    return;
+  }
+  res.json({
+    id: updated.id,
+    athleteId: updated.athleteId,
+    gameId: updated.gameId ?? null,
+    kickType: updated.kickType,
+    data: updated.data,
+    isGameWinner: updated.isGameWinner,
+    createdAt: updated.createdAt,
+  });
+});
+
 router.delete("/kicks/:id", async (req, res) => {
   const { id } = req.params;
   const [deleted] = await db
