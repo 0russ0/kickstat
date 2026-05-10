@@ -9,6 +9,8 @@ import { formatHangtime } from "@/hooks/useStopwatch";
 
 interface Props {
   kickType?: KickType;
+  practiceOnly?: boolean;
+  gameId?: string;
 }
 
 const RESULT_LABELS: Record<string, string> = {
@@ -163,13 +165,15 @@ const rowStyles = StyleSheet.create({
   },
 });
 
-export function KickHistoryList({ kickType }: Props) {
+export function KickHistoryList({ kickType, practiceOnly, gameId }: Props) {
   const colors = useColors();
   const { activeAthleteId, removeKick } = useApp();
 
   const params = {
     athleteId: activeAthleteId ?? undefined,
     kickType,
+    gameId,
+    practiceOnly: practiceOnly ? true : undefined,
     limit: 10,
   };
 

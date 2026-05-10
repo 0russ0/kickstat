@@ -1,7 +1,7 @@
 import { db, kicksTable } from "@workspace/db";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import { Router } from "express";
-import { CreateKickBody, GetKicksQueryParams } from "@workspace/api-zod";
+import { CreateKickBody } from "@workspace/api-zod";
 
 const router = Router();
 
@@ -15,6 +15,9 @@ router.get("/kicks/stats/:athleteId", async (req, res) => {
   const fgKicks = allKicks.filter((k) => k.kickType === "field_goal");
   const puntKicks = allKicks.filter((k) => k.kickType === "punt");
   const kickoffKicks = allKicks.filter((k) => k.kickType === "kickoff");
+  const puntWithDist = puntKicks.filter(
+    (k) => (k.data as Record<string, unknown>)["distance"] != null,
+  );
 
   res.json({
     athleteId,
@@ -26,52 +29,49 @@ router.get("/kicks/stats/:athleteId", async (req, res) => {
     },
     punts: {
       total: puntKicks.length,
-      avgDistance:
-        puntKicks.length
-          ? puntKicks.reduce((s, k) => s + ((k.data as Record<string, unknown>)["distance"] as number), 0) / puntKicks.length
-          : 0,
-      avgHangtime:
-        puntKicks.length
-          ? puntKicks.reduce((s, k) => s + ((k.data as Record<string, unknown>)["hangtime"] as number), 0) / puntKicks.length
-          : 0,
+      avgDistance: puntWithDist.length
+        ? puntWithDist.reduce((s, k) => s + ((k.data as Record<string, unknown>)["distance"] as number), 0) / puntWithDist.length
+        : 0,
+      avgHangtime: puntKicks.length
+        ? puntKicks.reduce((s, k) => s + ((k.data as Record<string, unknown>)["hangtime"] as number), 0) / puntKicks.length
+        : 0,
     },
     kickoffs: {
       total: kickoffKicks.length,
       touchbacks: kickoffKicks.filter((k) => (k.data as Record<string, unknown>)["touchback"]).length,
-      avgHangtime:
-        kickoffKicks.length
-          ? kickoffKicks.reduce((s, k) => s + ((k.data as Record<string, unknown>)["hangtime"] as number), 0) / kickoffKicks.length
-          : 0,
+      avgHangtime: kickoffKicks.length
+        ? kickoffKicks.reduce((s, k) => s + ((k.data as Record<string, unknown>)["hangtime"] as number), 0) / kickoffKicks.length
+        : 0,
     },
   });
 });
 
 router.get("/kicks", async (req, res) => {
-  const query = GetKicksQueryParams.safeParse(req.query);
-  if (!query.success) {
-    res.status(400).json({ error: "Invalid query parameters" });
-    return;
-  }
-
-  const { athleteId, kickType, limit } = query.data;
+  const { athleteId, kickType, gameId, practiceOnly, limit } = req.query;
   const conditions = [];
 
-  if (athleteId) conditions.push(eq(kicksTable.athleteId, athleteId));
-  if (kickType) conditions.push(eq(kicksTable.kickType, kickType));
+  if (athleteId && typeof athleteId === "string") conditions.push(eq(kicksTable.athleteId, athleteId));
+  if (kickType && typeof kickType === "string") conditions.push(eq(kicksTable.kickType, kickType as "field_goal" | "punt" | "kickoff"));
+  if (gameId && typeof gameId === "string") conditions.push(eq(kicksTable.gameId, gameId));
+  if (practiceOnly === "true") conditions.push(isNull(kicksTable.gameId));
+
+  const limitN = limit ? parseInt(limit as string, 10) : 10;
 
   const kicks = await db
     .select()
     .from(kicksTable)
     .where(conditions.length > 0 ? and(...conditions) : undefined)
     .orderBy(desc(kicksTable.createdAt))
-    .limit(limit ?? 10);
+    .limit(isNaN(limitN) ? 10 : limitN);
 
   res.json(
     kicks.map((k) => ({
       id: k.id,
       athleteId: k.athleteId,
+      gameId: k.gameId ?? null,
       kickType: k.kickType,
       data: k.data,
+      isGameWinner: k.isGameWinner,
       createdAt: k.createdAt,
     })),
   );
@@ -88,16 +88,20 @@ router.post("/kicks", async (req, res) => {
     .insert(kicksTable)
     .values({
       athleteId: parsed.data.athleteId,
+      gameId: parsed.data.gameId ?? null,
       kickType: parsed.data.kickType,
       data: parsed.data.data,
+      isGameWinner: parsed.data.isGameWinner ?? false,
     })
     .returning();
 
   res.status(201).json({
     id: kick.id,
     athleteId: kick.athleteId,
+    gameId: kick.gameId ?? null,
     kickType: kick.kickType,
     data: kick.data,
+    isGameWinner: kick.isGameWinner,
     createdAt: kick.createdAt,
   });
 });
@@ -108,12 +112,10 @@ router.delete("/kicks/:id", async (req, res) => {
     .delete(kicksTable)
     .where(eq(kicksTable.id, id))
     .returning();
-
   if (!deleted) {
     res.status(404).json({ error: "Kick not found" });
     return;
   }
-
   res.json({ success: true });
 });
 

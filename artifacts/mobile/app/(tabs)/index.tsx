@@ -15,6 +15,7 @@ import { Feather } from "@expo/vector-icons";
 import { AthleteBar } from "@/components/AthleteBar";
 import { KickHistoryList } from "@/components/KickHistoryList";
 import { KickTypeToggle } from "@/components/KickTypeToggle";
+import { ModeSelector } from "@/components/ModeSelector";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 
@@ -31,11 +32,12 @@ const MISS_TYPES: { value: MissType; label: string }[] = [
 
 export default function FieldGoalScreen() {
   const colors = useColors();
-  const { activeAthleteId, recordKick } = useApp();
+  const { activeAthleteId, recordKick, kickMode, activeGame } = useApp();
 
   const [los, setLos] = useState("");
   const [outcome, setOutcome] = useState<Outcome>(null);
   const [missType, setMissType] = useState<MissType | null>(null);
+  const [isGameWinner, setIsGameWinner] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const totalDistance = los ? Number(los) + 17 : null;
@@ -44,6 +46,7 @@ export default function FieldGoalScreen() {
     setLos("");
     setOutcome(null);
     setMissType(null);
+    setIsGameWinner(false);
   };
 
   const handleSubmit = async () => {
@@ -63,12 +66,18 @@ export default function FieldGoalScreen() {
       Alert.alert("Missing Info", "Please select a miss type.");
       return;
     }
+    if (kickMode === "game" && !activeGame) {
+      Alert.alert("No Game Selected", "Please select a game or switch to Practice mode.");
+      return;
+    }
 
     setSubmitting(true);
     try {
       await recordKick({
         athleteId: activeAthleteId,
+        gameId: kickMode === "game" && activeGame ? activeGame.id : null,
         kickType: "field_goal",
+        isGameWinner: kickMode === "game" ? isGameWinner : false,
         data: {
           los: Number(los),
           totalDistance: Number(los) + 17,
@@ -92,7 +101,7 @@ export default function FieldGoalScreen() {
   const s = StyleSheet.create({
     screen: { flex: 1, backgroundColor: colors.background },
     scroll: { flex: 1 },
-    content: { padding: 16, gap: 20, paddingBottom: 40 },
+    content: { padding: 16, gap: 16, paddingBottom: 40 },
     card: {
       backgroundColor: colors.card,
       borderRadius: 16,
@@ -108,9 +117,7 @@ export default function FieldGoalScreen() {
       letterSpacing: 1,
       textTransform: "uppercase",
     },
-    losRow: { flexDirection: "row", alignItems: "center", gap: 12 },
     input: {
-      flex: 1,
       backgroundColor: colors.input,
       borderRadius: 10,
       borderWidth: 1,
@@ -121,29 +128,6 @@ export default function FieldGoalScreen() {
       fontFamily: "Inter_700Bold",
       color: colors.foreground,
       textAlign: "center",
-    },
-    arrow: {
-      fontSize: 18,
-      color: colors.mutedForeground,
-      fontFamily: "Inter_400Regular",
-    },
-    distanceBox: {
-      flex: 1,
-      backgroundColor: colors.secondary,
-      borderRadius: 10,
-      paddingVertical: 12,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    distanceLabel: {
-      fontSize: 11,
-      fontFamily: "Inter_500Medium",
-      color: colors.mutedForeground,
-    },
-    distanceValue: {
-      fontSize: 22,
-      fontFamily: "Inter_700Bold",
-      color: colors.primary,
     },
     outcomesRow: { flexDirection: "row", gap: 10 },
     outcomeBtn: {
@@ -166,6 +150,24 @@ export default function FieldGoalScreen() {
       borderWidth: 1,
     },
     missBtnText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
+    gameWinnerRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      paddingVertical: 4,
+    },
+    checkBox: {
+      width: 22,
+      height: 22,
+      borderRadius: 6,
+      borderWidth: 2,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    gameWinnerLabel: {
+      fontSize: 14,
+      fontFamily: "Inter_500Medium",
+    },
     submitBtn: {
       paddingVertical: 16,
       borderRadius: 14,
@@ -183,6 +185,7 @@ export default function FieldGoalScreen() {
     <View style={s.screen}>
       <AthleteBar />
       <KickTypeToggle active="fg" />
+      <ModeSelector />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -262,6 +265,18 @@ export default function FieldGoalScreen() {
                 </View>
               </View>
             )}
+
+            {/* Game winner toggle — only visible in game mode after Made */}
+            {kickMode === "game" && outcome === "made" && (
+              <Pressable style={s.gameWinnerRow} onPress={() => setIsGameWinner(!isGameWinner)}>
+                <View style={[s.checkBox, { backgroundColor: isGameWinner ? colors.warning : "transparent", borderColor: isGameWinner ? colors.warning : colors.border }]}>
+                  {isGameWinner && <Feather name="check" size={14} color="#fff" />}
+                </View>
+                <Text style={[s.gameWinnerLabel, { color: isGameWinner ? colors.warning : colors.foreground }]}>
+                  🏆 Game-Winning Field Goal
+                </Text>
+              </Pressable>
+            )}
           </View>
 
           <Pressable
@@ -277,7 +292,7 @@ export default function FieldGoalScreen() {
             </Text>
           </Pressable>
 
-          <KickHistoryList kickType="field_goal" />
+          <KickHistoryList kickType="field_goal" gameId={kickMode === "game" && activeGame ? activeGame.id : undefined} />
         </ScrollView>
       </KeyboardAvoidingView>
     </View>

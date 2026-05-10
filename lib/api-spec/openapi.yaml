@@ -12,6 +12,10 @@ tags:
     description: Health operations
   - name: athletes
     description: Athlete management
+  - name: seasons
+    description: Season management
+  - name: games
+    description: Game management
   - name: kicks
     description: Kick tracking
 paths:
@@ -20,7 +24,6 @@ paths:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -92,6 +95,178 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /seasons:
+    get:
+      operationId: getSeasons
+      tags: [seasons]
+      summary: List seasons for an athlete
+      parameters:
+        - name: athleteId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of seasons
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Season"
+    post:
+      operationId: createSeason
+      tags: [seasons]
+      summary: Create a new season
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSeasonBody"
+      responses:
+        "201":
+          description: Created season
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Season"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /seasons/{id}:
+    delete:
+      operationId: deleteSeason
+      tags: [seasons]
+      summary: Delete a season
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /games:
+    get:
+      operationId: getGames
+      tags: [games]
+      summary: List games for a season
+      parameters:
+        - name: seasonId
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: athleteId
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of games
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Game"
+    post:
+      operationId: createGame
+      tags: [games]
+      summary: Create a new game
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateGameBody"
+      responses:
+        "201":
+          description: Created game
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Game"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /games/{id}:
+    patch:
+      operationId: updateGame
+      tags: [games]
+      summary: Update a game (final score, etc.)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateGameBody"
+      responses:
+        "200":
+          description: Updated game
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Game"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteGame
+      tags: [games]
+      summary: Delete a game
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /kicks:
     get:
       operationId: getKicks
@@ -108,6 +283,16 @@ paths:
           required: false
           schema:
             $ref: "#/components/schemas/KickType"
+        - name: gameId
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: practiceOnly
+          in: query
+          required: false
+          schema:
+            type: boolean
         - name: limit
           in: query
           required: false
@@ -243,6 +428,141 @@ components:
       required:
         - name
 
+    Season:
+      type: object
+      properties:
+        id:
+          type: string
+        athleteId:
+          type: string
+        name:
+          type: string
+        year:
+          type: integer
+        createdAt:
+          type: string
+      required:
+        - id
+        - athleteId
+        - name
+        - year
+        - createdAt
+
+    CreateSeasonBody:
+      type: object
+      properties:
+        athleteId:
+          type: string
+        name:
+          type: string
+        year:
+          type: integer
+      required:
+        - athleteId
+        - name
+        - year
+
+    GameWeather:
+      type: object
+      properties:
+        conditions:
+          type: string
+          enum: [clear, cloudy, rain, snow, dome]
+          nullable: true
+        windMph:
+          type: integer
+          nullable: true
+        windDir:
+          type: string
+          nullable: true
+
+    Game:
+      type: object
+      properties:
+        id:
+          type: string
+        seasonId:
+          type: string
+        athleteId:
+          type: string
+        opponent:
+          type: string
+          nullable: true
+        date:
+          type: string
+        homeAway:
+          type: string
+          enum: [home, away]
+        surface:
+          type: string
+          enum: [grass, turf]
+        weather:
+          $ref: "#/components/schemas/GameWeather"
+          nullable: true
+        isPlayoff:
+          type: boolean
+        myScore:
+          type: integer
+          nullable: true
+        opponentScore:
+          type: integer
+          nullable: true
+        createdAt:
+          type: string
+      required:
+        - id
+        - seasonId
+        - athleteId
+        - date
+        - homeAway
+        - surface
+        - isPlayoff
+        - createdAt
+
+    CreateGameBody:
+      type: object
+      properties:
+        seasonId:
+          type: string
+        athleteId:
+          type: string
+        opponent:
+          type: string
+          nullable: true
+        date:
+          type: string
+        homeAway:
+          type: string
+          enum: [home, away]
+        surface:
+          type: string
+          enum: [grass, turf]
+        weather:
+          $ref: "#/components/schemas/GameWeather"
+          nullable: true
+        isPlayoff:
+          type: boolean
+      required:
+        - seasonId
+        - athleteId
+        - date
+        - homeAway
+        - surface
+        - isPlayoff
+
+    UpdateGameBody:
+      type: object
+      properties:
+        myScore:
+          type: integer
+          nullable: true
+        opponentScore:
+          type: integer
+          nullable: true
+        opponent:
+          type: string
+          nullable: true
+
     FieldGoalData:
       type: object
       properties:
@@ -322,10 +642,15 @@ components:
           type: string
         athleteId:
           type: string
+        gameId:
+          type: string
+          nullable: true
         kickType:
           $ref: "#/components/schemas/KickType"
         data:
           type: object
+        isGameWinner:
+          type: boolean
         createdAt:
           type: string
       required:
@@ -333,6 +658,7 @@ components:
         - athleteId
         - kickType
         - data
+        - isGameWinner
         - createdAt
 
     CreateKickBody:
@@ -340,10 +666,15 @@ components:
       properties:
         athleteId:
           type: string
+        gameId:
+          type: string
+          nullable: true
         kickType:
           $ref: "#/components/schemas/KickType"
         data:
           type: object
+        isGameWinner:
+          type: boolean
       required:
         - athleteId
         - kickType

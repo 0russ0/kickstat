@@ -8,8 +8,11 @@ import {
   useDeleteKick,
   getGetAthletesQueryKey,
   getGetKicksQueryKey,
+  getGetGamesQueryKey,
 } from "@workspace/api-client-react";
-import type { Athlete, CreateKickBody } from "@workspace/api-client-react";
+import type { Athlete, CreateKickBody, Game } from "@workspace/api-client-react";
+
+export type KickMode = "practice" | "game";
 
 interface AppContextValue {
   athletes: Athlete[];
@@ -21,6 +24,10 @@ interface AppContextValue {
   removeAthlete: (id: string) => Promise<void>;
   recordKick: (body: CreateKickBody) => Promise<void>;
   removeKick: (id: string) => Promise<void>;
+  kickMode: KickMode;
+  setKickMode: (mode: KickMode) => void;
+  activeGame: Game | null;
+  setActiveGame: (game: Game | null) => void;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -29,6 +36,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
   const [activeAthleteId, setActiveAthleteId] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [kickMode, setKickMode] = useState<KickMode>("practice");
+  const [activeGame, setActiveGame] = useState<Game | null>(null);
 
   const { data: athletes = [], isLoading: isLoadingAthletes } = useGetAthletes({
     query: { queryKey: getGetAthletesQueryKey() },
@@ -39,6 +48,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setActiveAthleteId(athletes[0].id);
     }
   }, [athletes, activeAthleteId]);
+
+  // Clear active game when switching to practice
+  useEffect(() => {
+    if (kickMode === "practice") setActiveGame(null);
+  }, [kickMode]);
 
   const createAthleteMutation = useCreateAthlete();
   const deleteAthleteMutation = useDeleteAthlete();
@@ -75,6 +89,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     try {
       await createKickMutation.mutateAsync({ data: body });
       queryClient.invalidateQueries({ queryKey: getGetKicksQueryKey() });
+      if (body.gameId) {
+        queryClient.invalidateQueries({ queryKey: getGetGamesQueryKey() });
+      }
     } finally {
       setIsSyncing(false);
     }
@@ -102,6 +119,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         removeAthlete,
         recordKick,
         removeKick,
+        kickMode,
+        setKickMode,
+        activeGame,
+        setActiveGame,
       }}
     >
       {children}

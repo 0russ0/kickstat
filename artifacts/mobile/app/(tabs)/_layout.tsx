@@ -24,9 +24,13 @@ function NativeTabLayout() {
         <Icon sf={{ default: "bolt.circle", selected: "bolt.circle.fill" }} />
         <Label>Kickoff</Label>
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="history">
-        <Icon sf={{ default: "list.bullet.clipboard", selected: "list.bullet.clipboard.fill" }} />
-        <Label>History</Label>
+      <NativeTabs.Trigger name="games">
+        <Icon sf={{ default: "calendar", selected: "calendar.circle.fill" }} />
+        <Label>Games</Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="practice">
+        <Icon sf={{ default: "figure.run.circle", selected: "figure.run.circle.fill" }} />
+        <Label>Practice</Label>
       </NativeTabs.Trigger>
     </NativeTabs>
   );
@@ -107,17 +111,30 @@ function ClassicTabLayout() {
         }}
       />
       <Tabs.Screen
-        name="history"
+        name="games"
         options={{
-          title: "History",
+          title: "Games",
           tabBarIcon: ({ color }) =>
             isIOS ? (
-              <SymbolView name="list.bullet.clipboard" tintColor={color} size={24} />
+              <SymbolView name="calendar" tintColor={color} size={24} />
             ) : (
-              <Feather name="list" size={22} color={color} />
+              <Feather name="calendar" size={22} color={color} />
             ),
         }}
       />
+      <Tabs.Screen
+        name="practice"
+        options={{
+          title: "Practice",
+          tabBarIcon: ({ color }) =>
+            isIOS ? (
+              <SymbolView name="figure.run.circle" tintColor={color} size={24} />
+            ) : (
+              <Feather name="activity" size={22} color={color} />
+            ),
+        }}
+      />
+      <Tabs.Screen name="history" options={{ href: null }} />
     </Tabs>
   );
 }

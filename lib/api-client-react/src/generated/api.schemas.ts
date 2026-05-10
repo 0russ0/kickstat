@@ -35,6 +35,100 @@ export interface CreateAthleteBody {
   name: string;
 }
 
+export interface Season {
+  id: string;
+  athleteId: string;
+  name: string;
+  year: number;
+  createdAt: string;
+}
+
+export interface CreateSeasonBody {
+  athleteId: string;
+  name: string;
+  year: number;
+}
+
+export type GameWeatherConditions =
+  | (typeof GameWeatherConditions)[keyof typeof GameWeatherConditions]
+  | null;
+
+export const GameWeatherConditions = {
+  clear: "clear",
+  cloudy: "cloudy",
+  rain: "rain",
+  snow: "snow",
+  dome: "dome",
+} as const;
+
+export interface GameWeather {
+  conditions?: GameWeatherConditions;
+  windMph?: number | null;
+  windDir?: string | null;
+}
+
+export type GameHomeAway = (typeof GameHomeAway)[keyof typeof GameHomeAway];
+
+export const GameHomeAway = {
+  home: "home",
+  away: "away",
+} as const;
+
+export type GameSurface = (typeof GameSurface)[keyof typeof GameSurface];
+
+export const GameSurface = {
+  grass: "grass",
+  turf: "turf",
+} as const;
+
+export interface Game {
+  id: string;
+  seasonId: string;
+  athleteId: string;
+  opponent?: string | null;
+  date: string;
+  homeAway: GameHomeAway;
+  surface: GameSurface;
+  weather?: GameWeather | null;
+  isPlayoff: boolean;
+  myScore?: number | null;
+  opponentScore?: number | null;
+  createdAt: string;
+}
+
+export type CreateGameBodyHomeAway =
+  (typeof CreateGameBodyHomeAway)[keyof typeof CreateGameBodyHomeAway];
+
+export const CreateGameBodyHomeAway = {
+  home: "home",
+  away: "away",
+} as const;
+
+export type CreateGameBodySurface =
+  (typeof CreateGameBodySurface)[keyof typeof CreateGameBodySurface];
+
+export const CreateGameBodySurface = {
+  grass: "grass",
+  turf: "turf",
+} as const;
+
+export interface CreateGameBody {
+  seasonId: string;
+  athleteId: string;
+  opponent?: string | null;
+  date: string;
+  homeAway: CreateGameBodyHomeAway;
+  surface: CreateGameBodySurface;
+  weather?: GameWeather | null;
+  isPlayoff: boolean;
+}
+
+export interface UpdateGameBody {
+  myScore?: number | null;
+  opponentScore?: number | null;
+  opponent?: string | null;
+}
+
 export type FieldGoalDataOutcome =
   (typeof FieldGoalDataOutcome)[keyof typeof FieldGoalDataOutcome];
 
@@ -126,8 +220,10 @@ export type KickData = { [key: string]: unknown };
 export interface Kick {
   id: string;
   athleteId: string;
+  gameId?: string | null;
   kickType: KickType;
   data: KickData;
+  isGameWinner: boolean;
   createdAt: string;
 }
 
@@ -135,8 +231,10 @@ export type CreateKickBodyData = { [key: string]: unknown };
 
 export interface CreateKickBody {
   athleteId: string;
+  gameId?: string | null;
   kickType: KickType;
   data: CreateKickBodyData;
+  isGameWinner?: boolean;
 }
 
 export type AthleteStatsFieldGoals = {
@@ -165,8 +263,19 @@ export interface AthleteStats {
   kickoffs: AthleteStatsKickoffs;
 }
 
+export type GetSeasonsParams = {
+  athleteId: string;
+};
+
+export type GetGamesParams = {
+  seasonId?: string;
+  athleteId?: string;
+};
+
 export type GetKicksParams = {
   athleteId?: string;
   kickType?: KickType;
+  gameId?: string;
+  practiceOnly?: boolean;
   limit?: number;
 };

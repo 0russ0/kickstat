@@ -8,7 +8,6 @@
 import * as zod from "zod";
 
 /**
- * Returns server health status
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({
@@ -44,6 +43,143 @@ export const DeleteAthleteResponse = zod.object({
 });
 
 /**
+ * @summary List seasons for an athlete
+ */
+export const GetSeasonsQueryParams = zod.object({
+  athleteId: zod.coerce.string(),
+});
+
+export const GetSeasonsResponseItem = zod.object({
+  id: zod.string(),
+  athleteId: zod.string(),
+  name: zod.string(),
+  year: zod.number(),
+  createdAt: zod.string(),
+});
+export const GetSeasonsResponse = zod.array(GetSeasonsResponseItem);
+
+/**
+ * @summary Create a new season
+ */
+export const CreateSeasonBody = zod.object({
+  athleteId: zod.string(),
+  name: zod.string(),
+  year: zod.number(),
+});
+
+/**
+ * @summary Delete a season
+ */
+export const DeleteSeasonParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DeleteSeasonResponse = zod.object({
+  success: zod.boolean(),
+});
+
+/**
+ * @summary List games for a season
+ */
+export const GetGamesQueryParams = zod.object({
+  seasonId: zod.coerce.string().optional(),
+  athleteId: zod.coerce.string().optional(),
+});
+
+export const GetGamesResponseItem = zod.object({
+  id: zod.string(),
+  seasonId: zod.string(),
+  athleteId: zod.string(),
+  opponent: zod.string().nullish(),
+  date: zod.string(),
+  homeAway: zod.enum(["home", "away"]),
+  surface: zod.enum(["grass", "turf"]),
+  weather: zod
+    .object({
+      conditions: zod
+        .enum(["clear", "cloudy", "rain", "snow", "dome"])
+        .nullish(),
+      windMph: zod.number().nullish(),
+      windDir: zod.string().nullish(),
+    })
+    .nullish(),
+  isPlayoff: zod.boolean(),
+  myScore: zod.number().nullish(),
+  opponentScore: zod.number().nullish(),
+  createdAt: zod.string(),
+});
+export const GetGamesResponse = zod.array(GetGamesResponseItem);
+
+/**
+ * @summary Create a new game
+ */
+export const CreateGameBody = zod.object({
+  seasonId: zod.string(),
+  athleteId: zod.string(),
+  opponent: zod.string().nullish(),
+  date: zod.string(),
+  homeAway: zod.enum(["home", "away"]),
+  surface: zod.enum(["grass", "turf"]),
+  weather: zod
+    .object({
+      conditions: zod
+        .enum(["clear", "cloudy", "rain", "snow", "dome"])
+        .nullish(),
+      windMph: zod.number().nullish(),
+      windDir: zod.string().nullish(),
+    })
+    .nullish(),
+  isPlayoff: zod.boolean(),
+});
+
+/**
+ * @summary Update a game (final score, etc.)
+ */
+export const UpdateGameParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdateGameBody = zod.object({
+  myScore: zod.number().nullish(),
+  opponentScore: zod.number().nullish(),
+  opponent: zod.string().nullish(),
+});
+
+export const UpdateGameResponse = zod.object({
+  id: zod.string(),
+  seasonId: zod.string(),
+  athleteId: zod.string(),
+  opponent: zod.string().nullish(),
+  date: zod.string(),
+  homeAway: zod.enum(["home", "away"]),
+  surface: zod.enum(["grass", "turf"]),
+  weather: zod
+    .object({
+      conditions: zod
+        .enum(["clear", "cloudy", "rain", "snow", "dome"])
+        .nullish(),
+      windMph: zod.number().nullish(),
+      windDir: zod.string().nullish(),
+    })
+    .nullish(),
+  isPlayoff: zod.boolean(),
+  myScore: zod.number().nullish(),
+  opponentScore: zod.number().nullish(),
+  createdAt: zod.string(),
+});
+
+/**
+ * @summary Delete a game
+ */
+export const DeleteGameParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DeleteGameResponse = zod.object({
+  success: zod.boolean(),
+});
+
+/**
  * @summary List kicks with optional filters
  */
 export const getKicksQueryLimitDefault = 10;
@@ -51,14 +187,18 @@ export const getKicksQueryLimitDefault = 10;
 export const GetKicksQueryParams = zod.object({
   athleteId: zod.coerce.string().optional(),
   kickType: zod.enum(["field_goal", "punt", "kickoff"]).optional(),
+  gameId: zod.coerce.string().optional(),
+  practiceOnly: zod.coerce.boolean().optional(),
   limit: zod.coerce.number().default(getKicksQueryLimitDefault),
 });
 
 export const GetKicksResponseItem = zod.object({
   id: zod.string(),
   athleteId: zod.string(),
+  gameId: zod.string().nullish(),
   kickType: zod.enum(["field_goal", "punt", "kickoff"]),
   data: zod.object({}).passthrough(),
+  isGameWinner: zod.boolean(),
   createdAt: zod.string(),
 });
 export const GetKicksResponse = zod.array(GetKicksResponseItem);
@@ -68,8 +208,10 @@ export const GetKicksResponse = zod.array(GetKicksResponseItem);
  */
 export const CreateKickBody = zod.object({
   athleteId: zod.string(),
+  gameId: zod.string().nullish(),
   kickType: zod.enum(["field_goal", "punt", "kickoff"]),
   data: zod.object({}).passthrough(),
+  isGameWinner: zod.boolean().optional(),
 });
 
 /**
