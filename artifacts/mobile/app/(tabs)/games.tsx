@@ -13,6 +13,7 @@ import { Feather } from "@expo/vector-icons";
 import {
   useGetSeasons,
   useCreateSeason,
+  useUpdateSeason,
   useDeleteSeason,
   useGetGames,
   useCreateGame,
@@ -51,10 +52,17 @@ export default function GamesScreen() {
 
   const [expandedSeason, setExpandedSeason] = useState<string | null>(null);
 
-  // Season modal
+  // New Season modal
   const [showSeasonModal, setShowSeasonModal] = useState(false);
   const [seasonName, setSeasonName] = useState("");
   const [seasonYear, setSeasonYear] = useState(String(new Date().getFullYear()));
+
+  // Edit Season modal
+  const [showEditSeasonModal, setShowEditSeasonModal] = useState(false);
+  const [editingSeason, setEditingSeason] = useState<Season | null>(null);
+  const [editSeasonName, setEditSeasonName] = useState("");
+  const [editSeasonYear, setEditSeasonYear] = useState("");
+  const [savingEditSeason, setSavingEditSeason] = useState(false);
 
   // Game modal
   const [showGameModal, setShowGameModal] = useState(false);
@@ -94,6 +102,7 @@ export default function GamesScreen() {
   );
 
   const createSeasonMutation = useCreateSeason();
+  const updateSeasonMutation = useUpdateSeason();
   const deleteSeasonMutation = useDeleteSeason();
   const createGameMutation = useCreateGame();
   const deleteGameMutation = useDeleteGame();
@@ -112,6 +121,29 @@ export default function GamesScreen() {
     setSeasonName("");
     setSeasonYear(String(new Date().getFullYear()));
     setShowSeasonModal(false);
+  };
+
+  const openEditSeason = (season: Season) => {
+    setEditingSeason(season);
+    setEditSeasonName(season.name);
+    setEditSeasonYear(String(season.year));
+    setShowEditSeasonModal(true);
+  };
+
+  const handleEditSeasonSave = async () => {
+    if (!editingSeason) return;
+    if (!editSeasonName.trim()) { Alert.alert("Missing", "Enter a season name."); return; }
+    const yr = parseInt(editSeasonYear, 10);
+    if (isNaN(yr)) { Alert.alert("Missing", "Enter a valid year."); return; }
+    setSavingEditSeason(true);
+    try {
+      await updateSeasonMutation.mutateAsync({ id: editingSeason.id, data: { name: editSeasonName.trim(), year: yr } });
+      invalidateSeasons();
+      setShowEditSeasonModal(false);
+      setEditingSeason(null);
+    } finally {
+      setSavingEditSeason(false);
+    }
   };
 
   const handleDeleteSeason = (season: Season) => {
@@ -198,9 +230,12 @@ export default function GamesScreen() {
     addBtn: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: colors.primary, borderRadius: 8 },
     addBtnText: { fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#fff" },
     card: { backgroundColor: colors.card, borderRadius: 14, borderWidth: 1, borderColor: colors.border, overflow: "hidden" },
-    seasonRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14 },
+    seasonRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14, gap: 8 },
     seasonName: { flex: 1, fontSize: 15, fontFamily: "Inter_600SemiBold", color: colors.foreground },
-    seasonYear: { fontSize: 13, fontFamily: "Inter_400Regular", color: colors.mutedForeground, marginRight: 8 },
+    seasonYear: { fontSize: 13, fontFamily: "Inter_400Regular", color: colors.mutedForeground },
+    seasonActions: { flexDirection: "row", alignItems: "center", gap: 16 },
+    iconBtn: { padding: 4 },
+    chevronBtn: { padding: 4 },
     divider: { height: 1, backgroundColor: colors.border },
     gameRow: { paddingHorizontal: 16, paddingVertical: 12, gap: 4 },
     gameTitle: { fontSize: 14, fontFamily: "Inter_600SemiBold", color: colors.foreground },
@@ -209,7 +244,6 @@ export default function GamesScreen() {
     scoreBtn: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: colors.secondary, borderRadius: 7, borderWidth: 1, borderColor: colors.border },
     scoreBtnText: { fontSize: 12, fontFamily: "Inter_500Medium", color: colors.foreground },
     emptyText: { padding: 20, textAlign: "center", fontSize: 14, fontFamily: "Inter_400Regular", color: colors.mutedForeground },
-    // Modal
     overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.65)", justifyContent: "flex-end" },
     sheet: { backgroundColor: colors.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, gap: 14, borderTopWidth: 1, borderColor: colors.border },
     sheetHandle: { width: 40, height: 4, backgroundColor: colors.border, borderRadius: 2, alignSelf: "center", marginBottom: 8 },
@@ -236,7 +270,6 @@ export default function GamesScreen() {
     <View style={s.screen}>
       <AthleteBar />
       <ScrollView style={s.scroll} contentContainerStyle={s.content}>
-        {/* Seasons list */}
         <View style={s.headerRow}>
           <Text style={s.sectionTitle}>Seasons</Text>
           <Pressable style={s.addBtn} onPress={() => setShowSeasonModal(true)}>
@@ -252,17 +285,26 @@ export default function GamesScreen() {
         ) : (
           seasons.map((season) => (
             <View key={season.id} style={s.card}>
-              <Pressable
-                style={s.seasonRow}
-                onPress={() => setExpandedSeason(expandedSeason === season.id ? null : season.id)}
-              >
+              {/* Season header row — name | year | edit | delete | chevron */}
+              <View style={s.seasonRow}>
                 <Text style={s.seasonName}>{season.name}</Text>
                 <Text style={s.seasonYear}>{season.year}</Text>
-                <Pressable onPress={() => handleDeleteSeason(season)} hitSlop={8} style={{ marginRight: 8 }}>
-                  <Feather name="trash-2" size={15} color={colors.destructive} />
-                </Pressable>
-                <Feather name={expandedSeason === season.id ? "chevron-up" : "chevron-down"} size={16} color={colors.mutedForeground} />
-              </Pressable>
+                <View style={s.seasonActions}>
+                  <Pressable style={s.iconBtn} onPress={() => openEditSeason(season)} hitSlop={8}>
+                    <Feather name="edit-2" size={15} color={colors.primary} />
+                  </Pressable>
+                  <Pressable style={s.iconBtn} onPress={() => handleDeleteSeason(season)} hitSlop={8}>
+                    <Feather name="trash-2" size={15} color={colors.destructive} />
+                  </Pressable>
+                  <Pressable
+                    style={s.chevronBtn}
+                    onPress={() => setExpandedSeason(expandedSeason === season.id ? null : season.id)}
+                    hitSlop={8}
+                  >
+                    <Feather name={expandedSeason === season.id ? "chevron-up" : "chevron-down"} size={16} color={colors.mutedForeground} />
+                  </Pressable>
+                </View>
+              </View>
 
               {expandedSeason === season.id && (
                 <>
@@ -337,6 +379,30 @@ export default function GamesScreen() {
               <Text style={s.saveBtnText}>Create Season</Text>
             </Pressable>
             <Pressable style={s.cancelBtn} onPress={() => setShowSeasonModal(false)}>
+              <Text style={s.cancelBtnText}>Cancel</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Edit Season Modal */}
+      <Modal visible={showEditSeasonModal} transparent animationType="slide" onRequestClose={() => setShowEditSeasonModal(false)}>
+        <Pressable style={s.overlay} onPress={() => setShowEditSeasonModal(false)}>
+          <Pressable style={s.sheet} onPress={(e) => e.stopPropagation()}>
+            <View style={s.sheetHandle} />
+            <Text style={s.sheetTitle}>Edit Season</Text>
+            <View>
+              <Text style={s.label}>Season Name</Text>
+              <TextInput style={s.input} value={editSeasonName} onChangeText={setEditSeasonName} placeholder="e.g. 2025 Fall" placeholderTextColor={colors.mutedForeground} autoFocus />
+            </View>
+            <View>
+              <Text style={s.label}>Year</Text>
+              <TextInput style={s.input} value={editSeasonYear} onChangeText={setEditSeasonYear} keyboardType="numeric" maxLength={4} placeholderTextColor={colors.mutedForeground} />
+            </View>
+            <Pressable style={[s.saveBtn, { opacity: savingEditSeason ? 0.7 : 1 }]} onPress={handleEditSeasonSave} disabled={savingEditSeason}>
+              <Text style={s.saveBtnText}>{savingEditSeason ? "Saving…" : "Save Changes"}</Text>
+            </Pressable>
+            <Pressable style={s.cancelBtn} onPress={() => setShowEditSeasonModal(false)}>
               <Text style={s.cancelBtnText}>Cancel</Text>
             </Pressable>
           </Pressable>

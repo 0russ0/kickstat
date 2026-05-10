@@ -1,7 +1,7 @@
 import { db, seasonsTable } from "@workspace/db";
 import { desc, eq } from "drizzle-orm";
 import { Router } from "express";
-import { CreateSeasonBody } from "@workspace/api-zod";
+import { CreateSeasonBody, UpdateSeasonBody } from "@workspace/api-zod";
 
 const router = Router();
 
@@ -27,6 +27,29 @@ router.post("/seasons", async (req, res) => {
   }
   const [season] = await db.insert(seasonsTable).values(parsed.data).returning();
   res.status(201).json(season);
+});
+
+router.patch("/seasons/:id", async (req, res) => {
+  const { id } = req.params;
+  const parsed = UpdateSeasonBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request body" });
+    return;
+  }
+  try {
+    const [updated] = await db
+      .update(seasonsTable)
+      .set(parsed.data)
+      .where(eq(seasonsTable.id, id))
+      .returning();
+    if (!updated) {
+      res.status(404).json({ error: "Season not found" });
+      return;
+    }
+    res.json(updated);
+  } catch {
+    res.status(404).json({ error: "Season not found" });
+  }
 });
 
 router.delete("/seasons/:id", async (req, res) => {

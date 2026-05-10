@@ -14,26 +14,86 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { CloudSyncIndicator } from "./CloudSyncIndicator";
+import type { Athlete } from "@workspace/api-client-react";
+
+type ModalMode = "add" | "edit";
 
 export function AthleteBar() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { athletes, activeAthleteId, setActiveAthleteId, isSyncing, addAthlete } = useApp();
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [newName, setNewName] = useState("");
+  const { athletes, activeAthleteId, setActiveAthleteId, addAthlete, editAthlete, removeAthlete } = useApp();
+
+  const [modalMode, setModalMode] = useState<ModalMode>("add");
+  const [showModal, setShowModal] = useState(false);
+  const [editingAthlete, setEditingAthlete] = useState<Athlete | null>(null);
+  const [nameInput, setNameInput] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const topPadding = Platform.OS === "web" ? 67 : insets.top;
 
-  const handleAdd = async () => {
-    const trimmed = newName.trim();
+  const openAdd = () => {
+    setModalMode("add");
+    setEditingAthlete(null);
+    setNameInput("");
+    setShowModal(true);
+  };
+
+  const openEdit = (athlete: Athlete) => {
+    setModalMode("edit");
+    setEditingAthlete(athlete);
+    setNameInput(athlete.name);
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setNameInput("");
+    setEditingAthlete(null);
+  };
+
+  const handleSave = async () => {
+    const trimmed = nameInput.trim();
     if (!trimmed) return;
-    if (athletes.length >= 3) {
+    if (modalMode === "add" && athletes.length >= 3) {
       Alert.alert("Max Athletes", "You can only have 3 athletes.");
       return;
     }
-    await addAthlete(trimmed);
-    setNewName("");
-    setShowAddModal(false);
+    setSaving(true);
+    try {
+      if (modalMode === "add") {
+        await addAthlete(trimmed);
+      } else if (editingAthlete) {
+        await editAthlete(editingAthlete.id, trimmed);
+      }
+      closeModal();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleLongPress = (athlete: Athlete) => {
+    Alert.alert(
+      athlete.name,
+      "What would you like to do?",
+      [
+        { text: "Edit Name", onPress: () => openEdit(athlete) },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => {
+            Alert.alert(
+              "Delete Athlete",
+              `Remove "${athlete.name}" and all their kicks, sessions, and games? This cannot be undone.`,
+              [
+                { text: "Cancel", style: "cancel" },
+                { text: "Delete", style: "destructive", onPress: () => removeAthlete(athlete.id) },
+              ],
+            );
+          },
+        },
+        { text: "Cancel", style: "cancel" },
+      ],
+    );
   };
 
   const styles = StyleSheet.create({
@@ -74,12 +134,6 @@ export function AthleteBar() {
       borderWidth: 1,
       borderColor: colors.border,
     },
-    syncRow: {
-      flexDirection: "row",
-      justifyContent: "flex-end",
-      alignItems: "center",
-      marginTop: 4,
-    },
     headerRow: {
       flexDirection: "row",
       alignItems: "center",
@@ -91,6 +145,14 @@ export function AthleteBar() {
       color: colors.mutedForeground,
       letterSpacing: 1.2,
       textTransform: "uppercase",
+    },
+    hint: {
+      fontSize: 10,
+      fontFamily: "Inter_400Regular",
+      color: colors.mutedForeground,
+      opacity: 0.6,
+      textAlign: "center",
+      marginTop: 4,
     },
   });
 
@@ -114,6 +176,8 @@ export function AthleteBar() {
                 },
               ]}
               onPress={() => setActiveAthleteId(a.id)}
+              onLongPress={() => handleLongPress(a)}
+              delayLongPress={400}
             >
               <Text
                 style={[
@@ -128,45 +192,39 @@ export function AthleteBar() {
           );
         })}
         {athletes.length < 3 && (
-          <Pressable style={styles.addBtn} onPress={() => setShowAddModal(true)}>
+          <Pressable style={styles.addBtn} onPress={openAdd}>
             <Feather name="plus" size={20} color={colors.foreground} />
           </Pressable>
         )}
       </View>
+      {athletes.length > 0 && (
+        <Text style={styles.hint}>Hold an athlete name to edit or remove</Text>
+      )}
 
-      <Modal visible={showAddModal} transparent animationType="fade">
+      <Modal visible={showModal} transparent animationType="fade" onRequestClose={closeModal}>
         <View style={modalStyles.overlay}>
           <View style={[modalStyles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[modalStyles.title, { color: colors.foreground }]}>Add Athlete</Text>
+            <Text style={[modalStyles.title, { color: colors.foreground }]}>
+              {modalMode === "add" ? "Add Athlete" : "Edit Name"}
+            </Text>
             <TextInput
-              style={[
-                modalStyles.input,
-                {
-                  backgroundColor: colors.input,
-                  color: colors.foreground,
-                  borderColor: colors.border,
-                },
-              ]}
+              style={[modalStyles.input, { backgroundColor: colors.input, color: colors.foreground, borderColor: colors.border }]}
               placeholder="Athlete name"
               placeholderTextColor={colors.mutedForeground}
-              value={newName}
-              onChangeText={setNewName}
+              value={nameInput}
+              onChangeText={setNameInput}
               autoFocus
-              onSubmitEditing={handleAdd}
+              onSubmitEditing={handleSave}
               returnKeyType="done"
             />
             <View style={modalStyles.row}>
-              <Pressable
-                style={[modalStyles.btn, { backgroundColor: colors.secondary }]}
-                onPress={() => { setShowAddModal(false); setNewName(""); }}
-              >
+              <Pressable style={[modalStyles.btn, { backgroundColor: colors.secondary }]} onPress={closeModal}>
                 <Text style={[modalStyles.btnText, { color: colors.mutedForeground }]}>Cancel</Text>
               </Pressable>
-              <Pressable
-                style={[modalStyles.btn, { backgroundColor: colors.primary }]}
-                onPress={handleAdd}
-              >
-                <Text style={[modalStyles.btnText, { color: colors.primaryForeground }]}>Add</Text>
+              <Pressable style={[modalStyles.btn, { backgroundColor: colors.primary, opacity: saving ? 0.7 : 1 }]} onPress={handleSave} disabled={saving}>
+                <Text style={[modalStyles.btnText, { color: colors.primaryForeground }]}>
+                  {saving ? "Saving…" : modalMode === "add" ? "Add" : "Save"}
+                </Text>
               </Pressable>
             </View>
           </View>

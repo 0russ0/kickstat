@@ -35,6 +35,10 @@ export interface CreateAthleteBody {
   name: string;
 }
 
+export interface UpdateAthleteBody {
+  name: string;
+}
+
 export interface Season {
   id: string;
   athleteId: string;
@@ -47,6 +51,11 @@ export interface CreateSeasonBody {
   athleteId: string;
   name: string;
   year: number;
+}
+
+export interface UpdateSeasonBody {
+  name?: string;
+  year?: number;
 }
 
 export type GameWeatherConditions =
@@ -210,6 +219,7 @@ export const KickoffDataTouchbackType = {
 export interface KickoffData {
   touchback: boolean;
   touchbackType?: KickoffDataTouchbackType;
+  outOfBounds?: boolean | null;
   hangtime: number;
   landingYard?: number | null;
   returnYards?: number | null;

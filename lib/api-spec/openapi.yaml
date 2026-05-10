@@ -73,6 +73,35 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
 
   /athletes/{id}:
+    patch:
+      operationId: updateAthlete
+      tags: [athletes]
+      summary: Rename an athlete
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAthleteBody"
+      responses:
+        "200":
+          description: Updated athlete
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Athlete"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
     delete:
       operationId: deleteAthlete
       tags: [athletes]
@@ -142,6 +171,35 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
 
   /seasons/{id}:
+    patch:
+      operationId: updateSeason
+      tags: [seasons]
+      summary: Update a season name or year
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSeasonBody"
+      responses:
+        "200":
+          description: Updated season
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Season"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
     delete:
       operationId: deleteSeason
       tags: [seasons]
@@ -533,6 +591,14 @@ components:
       required:
         - name
 
+    UpdateAthleteBody:
+      type: object
+      properties:
+        name:
+          type: string
+      required:
+        - name
+
     Season:
       type: object
       properties:
@@ -566,6 +632,14 @@ components:
         - athleteId
         - name
         - year
+
+    UpdateSeasonBody:
+      type: object
+      properties:
+        name:
+          type: string
+        year:
+          type: integer
 
     GameWeather:
       type: object
@@ -727,6 +801,9 @@ components:
         touchbackType:
           type: string
           enum: [endzone, out_of_endzone]
+          nullable: true
+        outOfBounds:
+          type: boolean
           nullable: true
         hangtime:
           type: number

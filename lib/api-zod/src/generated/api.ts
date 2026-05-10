@@ -32,6 +32,23 @@ export const CreateAthleteBody = zod.object({
 });
 
 /**
+ * @summary Rename an athlete
+ */
+export const UpdateAthleteParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdateAthleteBody = zod.object({
+  name: zod.string(),
+});
+
+export const UpdateAthleteResponse = zod.object({
+  id: zod.string(),
+  name: zod.string(),
+  createdAt: zod.string(),
+});
+
+/**
  * @summary Delete an athlete
  */
 export const DeleteAthleteParams = zod.object({
@@ -65,6 +82,26 @@ export const CreateSeasonBody = zod.object({
   athleteId: zod.string(),
   name: zod.string(),
   year: zod.number(),
+});
+
+/**
+ * @summary Update a season name or year
+ */
+export const UpdateSeasonParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdateSeasonBody = zod.object({
+  name: zod.string().optional(),
+  year: zod.number().optional(),
+});
+
+export const UpdateSeasonResponse = zod.object({
+  id: zod.string(),
+  athleteId: zod.string(),
+  name: zod.string(),
+  year: zod.number(),
+  createdAt: zod.string(),
 });
 
 /**

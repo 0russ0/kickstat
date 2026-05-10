@@ -35,8 +35,10 @@ import type {
   Kick,
   PracticeSession,
   Season,
+  UpdateAthleteBody,
   UpdateGameBody,
   UpdatePracticeSessionBody,
+  UpdateSeasonBody,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -282,6 +284,93 @@ export const useCreateAthlete = <
   TContext
 > => {
   return useMutation(getCreateAthleteMutationOptions(options));
+};
+
+/**
+ * @summary Rename an athlete
+ */
+export const getUpdateAthleteUrl = (id: string) => {
+  return `/api/athletes/${id}`;
+};
+
+export const updateAthlete = async (
+  id: string,
+  updateAthleteBody: UpdateAthleteBody,
+  options?: RequestInit,
+): Promise<Athlete> => {
+  return customFetch<Athlete>(getUpdateAthleteUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateAthleteBody),
+  });
+};
+
+export const getUpdateAthleteMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateAthlete>>,
+    TError,
+    { id: string; data: BodyType<UpdateAthleteBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateAthlete>>,
+  TError,
+  { id: string; data: BodyType<UpdateAthleteBody> },
+  TContext
+> => {
+  const mutationKey = ["updateAthlete"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateAthlete>>,
+    { id: string; data: BodyType<UpdateAthleteBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateAthlete(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateAthleteMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateAthlete>>
+>;
+export type UpdateAthleteMutationBody = BodyType<UpdateAthleteBody>;
+export type UpdateAthleteMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Rename an athlete
+ */
+export const useUpdateAthlete = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateAthlete>>,
+    TError,
+    { id: string; data: BodyType<UpdateAthleteBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateAthlete>>,
+  TError,
+  { id: string; data: BodyType<UpdateAthleteBody> },
+  TContext
+> => {
+  return useMutation(getUpdateAthleteMutationOptions(options));
 };
 
 /**
@@ -546,6 +635,93 @@ export const useCreateSeason = <
   TContext
 > => {
   return useMutation(getCreateSeasonMutationOptions(options));
+};
+
+/**
+ * @summary Update a season name or year
+ */
+export const getUpdateSeasonUrl = (id: string) => {
+  return `/api/seasons/${id}`;
+};
+
+export const updateSeason = async (
+  id: string,
+  updateSeasonBody: UpdateSeasonBody,
+  options?: RequestInit,
+): Promise<Season> => {
+  return customFetch<Season>(getUpdateSeasonUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateSeasonBody),
+  });
+};
+
+export const getUpdateSeasonMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateSeason>>,
+    TError,
+    { id: string; data: BodyType<UpdateSeasonBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateSeason>>,
+  TError,
+  { id: string; data: BodyType<UpdateSeasonBody> },
+  TContext
+> => {
+  const mutationKey = ["updateSeason"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateSeason>>,
+    { id: string; data: BodyType<UpdateSeasonBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateSeason(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateSeasonMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateSeason>>
+>;
+export type UpdateSeasonMutationBody = BodyType<UpdateSeasonBody>;
+export type UpdateSeasonMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Update a season name or year
+ */
+export const useUpdateSeason = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateSeason>>,
+    TError,
+    { id: string; data: BodyType<UpdateSeasonBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateSeason>>,
+  TError,
+  { id: string; data: BodyType<UpdateSeasonBody> },
+  TContext
+> => {
+  return useMutation(getUpdateSeasonMutationOptions(options));
 };
 
 /**

@@ -1,7 +1,7 @@
 import { athletesTable, db } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { Router } from "express";
-import { CreateAthleteBody } from "@workspace/api-zod";
+import { CreateAthleteBody, UpdateAthleteBody } from "@workspace/api-zod";
 
 const router = Router();
 
@@ -43,6 +43,29 @@ router.post("/athletes", async (req, res) => {
     name: athlete.name,
     createdAt: athlete.createdAt,
   });
+});
+
+router.patch("/athletes/:id", async (req, res) => {
+  const { id } = req.params;
+  const parsed = UpdateAthleteBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request body" });
+    return;
+  }
+  try {
+    const [updated] = await db
+      .update(athletesTable)
+      .set({ name: parsed.data.name })
+      .where(eq(athletesTable.id, id))
+      .returning();
+    if (!updated) {
+      res.status(404).json({ error: "Athlete not found" });
+      return;
+    }
+    res.json({ id: updated.id, name: updated.name, createdAt: updated.createdAt });
+  } catch {
+    res.status(404).json({ error: "Athlete not found" });
+  }
 });
 
 router.delete("/athletes/:id", async (req, res) => {

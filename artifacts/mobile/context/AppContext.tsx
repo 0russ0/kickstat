@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   useGetAthletes,
   useCreateAthlete,
+  useUpdateAthlete,
   useDeleteAthlete,
   useCreateKick,
   useDeleteKick,
@@ -17,10 +18,11 @@ export type KickMode = "practice" | "game";
 interface AppContextValue {
   athletes: Athlete[];
   activeAthleteId: string | null;
-  setActiveAthleteId: (id: string) => void;
+  setActiveAthleteId: (id: string | null) => void;
   isSyncing: boolean;
   isLoadingAthletes: boolean;
   addAthlete: (name: string) => Promise<void>;
+  editAthlete: (id: string, name: string) => Promise<void>;
   removeAthlete: (id: string) => Promise<void>;
   recordKick: (body: CreateKickBody) => Promise<void>;
   removeKick: (id: string) => Promise<void>;
@@ -60,6 +62,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [kickMode]);
 
   const createAthleteMutation = useCreateAthlete();
+  const updateAthleteMutation = useUpdateAthlete();
   const deleteAthleteMutation = useDeleteAthlete();
   const createKickMutation = useCreateKick();
   const deleteKickMutation = useDeleteKick();
@@ -74,6 +77,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setIsSyncing(false);
     }
   }, [createAthleteMutation, queryClient]);
+
+  const editAthlete = useCallback(async (id: string, name: string) => {
+    setIsSyncing(true);
+    try {
+      await updateAthleteMutation.mutateAsync({ id, data: { name } });
+      queryClient.invalidateQueries({ queryKey: getGetAthletesQueryKey() });
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [updateAthleteMutation, queryClient]);
 
   const removeAthlete = useCallback(async (id: string) => {
     setIsSyncing(true);
@@ -137,6 +150,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         isSyncing,
         isLoadingAthletes,
         addAthlete,
+        editAthlete,
         removeAthlete,
         recordKick,
         removeKick,
