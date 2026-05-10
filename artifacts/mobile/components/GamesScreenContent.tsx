@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import {
   Alert,
+  KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
@@ -332,139 +333,147 @@ export function GamesScreenContent({ onClose }: { onClose: () => void }) {
       </ScrollView>
 
       <Modal visible={showSeasonModal} transparent animationType="slide" onRequestClose={() => setShowSeasonModal(false)}>
-        <Pressable style={s.overlay} onPress={() => setShowSeasonModal(false)}>
-          <Pressable style={s.sheet} onPress={(e) => e.stopPropagation()}>
-            <View style={s.sheetHandle} />
-            <Text style={s.sheetTitle}>New Season</Text>
-            <View>
-              <Text style={s.label}>Season Name</Text>
-              <TextInput style={s.input} value={seasonName} onChangeText={setSeasonName} placeholder="e.g. 2025 Fall" placeholderTextColor={colors.mutedForeground} autoFocus />
-            </View>
-            <View>
-              <Text style={s.label}>Year</Text>
-              <TextInput style={s.input} value={seasonYear} onChangeText={setSeasonYear} keyboardType="numeric" maxLength={4} placeholderTextColor={colors.mutedForeground} />
-            </View>
-            <Pressable style={s.saveBtn} onPress={handleCreateSeason}>
-              <Text style={s.saveBtnText}>Create Season</Text>
-            </Pressable>
-            <Pressable style={s.cancelBtn} onPress={() => setShowSeasonModal(false)}>
-              <Text style={s.cancelBtnText}>Cancel</Text>
-            </Pressable>
-          </Pressable>
-        </Pressable>
-      </Modal>
-
-      <Modal visible={showEditSeasonModal} transparent animationType="slide" onRequestClose={() => setShowEditSeasonModal(false)}>
-        <Pressable style={s.overlay} onPress={() => setShowEditSeasonModal(false)}>
-          <Pressable style={s.sheet} onPress={(e) => e.stopPropagation()}>
-            <View style={s.sheetHandle} />
-            <Text style={s.sheetTitle}>Edit Season</Text>
-            <View>
-              <Text style={s.label}>Season Name</Text>
-              <TextInput style={s.input} value={editSeasonName} onChangeText={setEditSeasonName} placeholder="e.g. 2025 Fall" placeholderTextColor={colors.mutedForeground} autoFocus />
-            </View>
-            <View>
-              <Text style={s.label}>Year</Text>
-              <TextInput style={s.input} value={editSeasonYear} onChangeText={setEditSeasonYear} keyboardType="numeric" maxLength={4} placeholderTextColor={colors.mutedForeground} />
-            </View>
-            <Pressable style={[s.saveBtn, { opacity: savingEditSeason ? 0.7 : 1 }]} onPress={handleEditSeasonSave} disabled={savingEditSeason}>
-              <Text style={s.saveBtnText}>{savingEditSeason ? "Saving…" : "Save Changes"}</Text>
-            </Pressable>
-            <Pressable style={s.cancelBtn} onPress={() => setShowEditSeasonModal(false)}>
-              <Text style={s.cancelBtnText}>Cancel</Text>
-            </Pressable>
-          </Pressable>
-        </Pressable>
-      </Modal>
-
-      <Modal visible={showGameModal} transparent animationType="slide" onRequestClose={() => setShowGameModal(false)}>
-        <Pressable style={s.overlay} onPress={() => setShowGameModal(false)}>
-          <ScrollView>
-            <Pressable style={[s.sheet, { paddingBottom: 40 }]} onPress={(e) => e.stopPropagation()}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+          <Pressable style={s.overlay} onPress={() => setShowSeasonModal(false)}>
+            <Pressable style={s.sheet} onPress={(e) => e.stopPropagation()}>
               <View style={s.sheetHandle} />
-              <Text style={s.sheetTitle}>Add Game</Text>
+              <Text style={s.sheetTitle}>New Season</Text>
               <View>
-                <Text style={s.label}>Opponent</Text>
-                <TextInput style={s.input} value={gameOpponent} onChangeText={setGameOpponent} placeholder="Opponent name" placeholderTextColor={colors.mutedForeground} />
+                <Text style={s.label}>Season Name</Text>
+                <TextInput style={s.input} value={seasonName} onChangeText={setSeasonName} placeholder="e.g. 2025 Fall" placeholderTextColor={colors.mutedForeground} autoFocus />
               </View>
               <View>
-                <Text style={s.label}>Date (YYYY-MM-DD)</Text>
-                <TextInput style={s.input} value={gameDate} onChangeText={setGameDate} placeholder="2025-09-05" placeholderTextColor={colors.mutedForeground} />
+                <Text style={s.label}>Year</Text>
+                <TextInput style={s.input} value={seasonYear} onChangeText={setSeasonYear} keyboardType="numeric" maxLength={4} placeholderTextColor={colors.mutedForeground} />
               </View>
-              <View>
-                <Text style={s.label}>Home / Away</Text>
-                <View style={s.toggleRow}>
-                  {(["home", "away"] as HomeAway[]).map((v) => (
-                    <Pressable key={v} style={[s.toggleBtn, { backgroundColor: gameHomeAway === v ? colors.primary : colors.secondary, borderColor: gameHomeAway === v ? colors.primary : colors.border }]} onPress={() => setGameHomeAway(v)}>
-                      <Text style={[s.toggleBtnText, { color: gameHomeAway === v ? "#fff" : colors.mutedForeground }]}>{v === "home" ? "Home" : "Away"}</Text>
-                    </Pressable>
-                  ))}
-                </View>
-              </View>
-              <View>
-                <Text style={s.label}>Surface</Text>
-                <View style={s.toggleRow}>
-                  {(["grass", "turf"] as Surface[]).map((v) => (
-                    <Pressable key={v} style={[s.toggleBtn, { backgroundColor: gameSurface === v ? colors.primary : colors.secondary, borderColor: gameSurface === v ? colors.primary : colors.border }]} onPress={() => setGameSurface(v)}>
-                      <Text style={[s.toggleBtnText, { color: gameSurface === v ? "#fff" : colors.mutedForeground }]}>{v === "grass" ? "Grass" : "Turf"}</Text>
-                    </Pressable>
-                  ))}
-                </View>
-              </View>
-              <View>
-                <Text style={s.label}>Weather</Text>
-                <View style={s.gridRow}>
-                  {WEATHER_OPTIONS.map((w) => (
-                    <Pressable key={w} style={[s.toggleBtn, { flex: 0, paddingHorizontal: 14, backgroundColor: gameWeatherCond === w ? colors.primary : colors.secondary, borderColor: gameWeatherCond === w ? colors.primary : colors.border }]} onPress={() => setGameWeatherCond(w)}>
-                      <Text style={[s.toggleBtnText, { color: gameWeatherCond === w ? "#fff" : colors.mutedForeground }]}>{WEATHER_LABELS[w]}</Text>
-                    </Pressable>
-                  ))}
-                </View>
-              </View>
-              <View>
-                <Text style={s.label}>Wind Speed (mph)</Text>
-                <TextInput style={s.input} value={gameWindMph} onChangeText={setGameWindMph} keyboardType="numeric" maxLength={3} placeholder="0" placeholderTextColor={colors.mutedForeground} />
-              </View>
-              <Pressable style={s.playoffRow} onPress={() => setGameIsPlayoff(!gameIsPlayoff)}>
-                <View style={[s.checkBox, { backgroundColor: gameIsPlayoff ? colors.primary : "transparent", borderColor: gameIsPlayoff ? colors.primary : colors.border }]}>
-                  {gameIsPlayoff && <Feather name="check" size={14} color="#fff" />}
-                </View>
-                <Text style={s.playoffLabel}>Playoff Game</Text>
+              <Pressable style={s.saveBtn} onPress={handleCreateSeason}>
+                <Text style={s.saveBtnText}>Create Season</Text>
               </Pressable>
-              <Pressable style={s.saveBtn} onPress={handleCreateGame}>
-                <Text style={s.saveBtnText}>Add Game</Text>
-              </Pressable>
-              <Pressable style={s.cancelBtn} onPress={() => setShowGameModal(false)}>
+              <Pressable style={s.cancelBtn} onPress={() => setShowSeasonModal(false)}>
                 <Text style={s.cancelBtnText}>Cancel</Text>
               </Pressable>
             </Pressable>
-          </ScrollView>
-        </Pressable>
+          </Pressable>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      <Modal visible={showEditSeasonModal} transparent animationType="slide" onRequestClose={() => setShowEditSeasonModal(false)}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+          <Pressable style={s.overlay} onPress={() => setShowEditSeasonModal(false)}>
+            <Pressable style={s.sheet} onPress={(e) => e.stopPropagation()}>
+              <View style={s.sheetHandle} />
+              <Text style={s.sheetTitle}>Edit Season</Text>
+              <View>
+                <Text style={s.label}>Season Name</Text>
+                <TextInput style={s.input} value={editSeasonName} onChangeText={setEditSeasonName} placeholder="e.g. 2025 Fall" placeholderTextColor={colors.mutedForeground} autoFocus />
+              </View>
+              <View>
+                <Text style={s.label}>Year</Text>
+                <TextInput style={s.input} value={editSeasonYear} onChangeText={setEditSeasonYear} keyboardType="numeric" maxLength={4} placeholderTextColor={colors.mutedForeground} />
+              </View>
+              <Pressable style={[s.saveBtn, { opacity: savingEditSeason ? 0.7 : 1 }]} onPress={handleEditSeasonSave} disabled={savingEditSeason}>
+                <Text style={s.saveBtnText}>{savingEditSeason ? "Saving…" : "Save Changes"}</Text>
+              </Pressable>
+              <Pressable style={s.cancelBtn} onPress={() => setShowEditSeasonModal(false)}>
+                <Text style={s.cancelBtnText}>Cancel</Text>
+              </Pressable>
+            </Pressable>
+          </Pressable>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      <Modal visible={showGameModal} transparent animationType="slide" onRequestClose={() => setShowGameModal(false)}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+          <Pressable style={s.overlay} onPress={() => setShowGameModal(false)}>
+            <Pressable style={[s.sheet, { maxHeight: "92%" }]} onPress={(e) => e.stopPropagation()}>
+              <View style={s.sheetHandle} />
+              <Text style={s.sheetTitle}>Add Game</Text>
+              <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: 14, paddingBottom: 32 }}>
+                <View>
+                  <Text style={s.label}>Opponent</Text>
+                  <TextInput style={s.input} value={gameOpponent} onChangeText={setGameOpponent} placeholder="Opponent name" placeholderTextColor={colors.mutedForeground} />
+                </View>
+                <View>
+                  <Text style={s.label}>Date (YYYY-MM-DD)</Text>
+                  <TextInput style={s.input} value={gameDate} onChangeText={setGameDate} placeholder="2025-09-05" placeholderTextColor={colors.mutedForeground} />
+                </View>
+                <View>
+                  <Text style={s.label}>Home / Away</Text>
+                  <View style={s.toggleRow}>
+                    {(["home", "away"] as HomeAway[]).map((v) => (
+                      <Pressable key={v} style={[s.toggleBtn, { backgroundColor: gameHomeAway === v ? colors.primary : colors.secondary, borderColor: gameHomeAway === v ? colors.primary : colors.border }]} onPress={() => setGameHomeAway(v)}>
+                        <Text style={[s.toggleBtnText, { color: gameHomeAway === v ? "#fff" : colors.mutedForeground }]}>{v === "home" ? "Home" : "Away"}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+                <View>
+                  <Text style={s.label}>Surface</Text>
+                  <View style={s.toggleRow}>
+                    {(["grass", "turf"] as Surface[]).map((v) => (
+                      <Pressable key={v} style={[s.toggleBtn, { backgroundColor: gameSurface === v ? colors.primary : colors.secondary, borderColor: gameSurface === v ? colors.primary : colors.border }]} onPress={() => setGameSurface(v)}>
+                        <Text style={[s.toggleBtnText, { color: gameSurface === v ? "#fff" : colors.mutedForeground }]}>{v === "grass" ? "Grass" : "Turf"}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+                <View>
+                  <Text style={s.label}>Weather</Text>
+                  <View style={s.gridRow}>
+                    {WEATHER_OPTIONS.map((w) => (
+                      <Pressable key={w} style={[s.toggleBtn, { flex: 0, paddingHorizontal: 14, backgroundColor: gameWeatherCond === w ? colors.primary : colors.secondary, borderColor: gameWeatherCond === w ? colors.primary : colors.border }]} onPress={() => setGameWeatherCond(w)}>
+                        <Text style={[s.toggleBtnText, { color: gameWeatherCond === w ? "#fff" : colors.mutedForeground }]}>{WEATHER_LABELS[w]}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+                <View>
+                  <Text style={s.label}>Wind Speed (mph)</Text>
+                  <TextInput style={s.input} value={gameWindMph} onChangeText={setGameWindMph} keyboardType="numeric" maxLength={3} placeholder="0" placeholderTextColor={colors.mutedForeground} />
+                </View>
+                <Pressable style={s.playoffRow} onPress={() => setGameIsPlayoff(!gameIsPlayoff)}>
+                  <View style={[s.checkBox, { backgroundColor: gameIsPlayoff ? colors.primary : "transparent", borderColor: gameIsPlayoff ? colors.primary : colors.border }]}>
+                    {gameIsPlayoff && <Feather name="check" size={14} color="#fff" />}
+                  </View>
+                  <Text style={s.playoffLabel}>Playoff Game</Text>
+                </Pressable>
+                <Pressable style={s.saveBtn} onPress={handleCreateGame}>
+                  <Text style={s.saveBtnText}>Add Game</Text>
+                </Pressable>
+                <Pressable style={s.cancelBtn} onPress={() => setShowGameModal(false)}>
+                  <Text style={s.cancelBtnText}>Cancel</Text>
+                </Pressable>
+              </ScrollView>
+            </Pressable>
+          </Pressable>
+        </KeyboardAvoidingView>
       </Modal>
 
       <Modal visible={showScoreModal} transparent animationType="slide" onRequestClose={() => setShowScoreModal(false)}>
-        <Pressable style={s.overlay} onPress={() => setShowScoreModal(false)}>
-          <Pressable style={s.sheet} onPress={(e) => e.stopPropagation()}>
-            <View style={s.sheetHandle} />
-            <Text style={s.sheetTitle}>Final Score</Text>
-            <View style={s.toggleRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={s.label}>Our Score</Text>
-                <TextInput style={s.input} value={myScore} onChangeText={setMyScore} keyboardType="numeric" maxLength={3} placeholder="0" placeholderTextColor={colors.mutedForeground} />
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+          <Pressable style={s.overlay} onPress={() => setShowScoreModal(false)}>
+            <Pressable style={s.sheet} onPress={(e) => e.stopPropagation()}>
+              <View style={s.sheetHandle} />
+              <Text style={s.sheetTitle}>Final Score</Text>
+              <View style={s.toggleRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.label}>Our Score</Text>
+                  <TextInput style={s.input} value={myScore} onChangeText={setMyScore} keyboardType="numeric" maxLength={3} placeholder="0" placeholderTextColor={colors.mutedForeground} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.label}>Their Score</Text>
+                  <TextInput style={s.input} value={oppScore} onChangeText={setOppScore} keyboardType="numeric" maxLength={3} placeholder="0" placeholderTextColor={colors.mutedForeground} />
+                </View>
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={s.label}>Their Score</Text>
-                <TextInput style={s.input} value={oppScore} onChangeText={setOppScore} keyboardType="numeric" maxLength={3} placeholder="0" placeholderTextColor={colors.mutedForeground} />
-              </View>
-            </View>
-            <Pressable style={s.saveBtn} onPress={handleSaveScore}>
-              <Text style={s.saveBtnText}>Save Score</Text>
-            </Pressable>
-            <Pressable style={s.cancelBtn} onPress={() => setShowScoreModal(false)}>
-              <Text style={s.cancelBtnText}>Cancel</Text>
+              <Pressable style={s.saveBtn} onPress={handleSaveScore}>
+                <Text style={s.saveBtnText}>Save Score</Text>
+              </Pressable>
+              <Pressable style={s.cancelBtn} onPress={() => setShowScoreModal(false)}>
+                <Text style={s.cancelBtnText}>Cancel</Text>
+              </Pressable>
             </Pressable>
           </Pressable>
-        </Pressable>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
