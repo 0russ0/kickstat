@@ -1,10 +1,11 @@
-import React from "react";
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useRouter } from "expo-router";
+import React, { useState } from "react";
+import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 import { useTheme } from "@/context/ThemeContext";
+import { GamesScreenContent } from "@/components/GamesScreenContent";
+import { HistoryScreenContent } from "@/components/HistoryScreenContent";
 
 function NavRow({
   icon,
@@ -62,10 +63,12 @@ const rowStyles = StyleSheet.create({
 export default function MoreScreen() {
   const colors = useColors();
   const { resolvedTheme, toggleTheme } = useTheme();
-  const router = useRouter();
   const insets = useSafeAreaInsets();
   const topPadding = Platform.OS === "web" ? 67 : insets.top;
   const isDark = resolvedTheme === "dark";
+
+  const [showGames, setShowGames] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
   const s = StyleSheet.create({
     screen: { flex: 1, backgroundColor: colors.background },
@@ -151,12 +154,12 @@ export default function MoreScreen() {
             <NavRow
               icon="calendar"
               label="Games & Seasons"
-              onPress={() => router.push("/games")}
+              onPress={() => setShowGames(true)}
             />
             <NavRow
               icon="list"
               label="History & Stats"
-              onPress={() => router.push("/history")}
+              onPress={() => setShowHistory(true)}
               last
             />
           </View>
@@ -220,6 +223,24 @@ export default function MoreScreen() {
         </View>
 
       </ScrollView>
+
+      <Modal
+        visible={showGames}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowGames(false)}
+      >
+        <GamesScreenContent onClose={() => setShowGames(false)} />
+      </Modal>
+
+      <Modal
+        visible={showHistory}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowHistory(false)}
+      >
+        <HistoryScreenContent onClose={() => setShowHistory(false)} />
+      </Modal>
     </View>
   );
 }
