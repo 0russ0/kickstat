@@ -20,14 +20,13 @@ import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 
 type Outcome = "made" | "missed" | null;
-type MissType = "left" | "right" | "short" | "blocked" | "bad_snap";
+type MissType = "left" | "right" | "short" | "blocked";
 
 const MISS_TYPES: { value: MissType; label: string }[] = [
   { value: "left", label: "Left" },
   { value: "right", label: "Right" },
   { value: "short", label: "Short" },
   { value: "blocked", label: "Blocked" },
-  { value: "bad_snap", label: "Bad Snap" },
 ];
 
 export default function FieldGoalScreen() {
@@ -37,6 +36,7 @@ export default function FieldGoalScreen() {
   const [los, setLos] = useState("");
   const [outcome, setOutcome] = useState<Outcome>(null);
   const [missType, setMissType] = useState<MissType | null>(null);
+  const [badSnap, setBadSnap] = useState(false);
   const [isGameWinner, setIsGameWinner] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -46,6 +46,7 @@ export default function FieldGoalScreen() {
     setLos("");
     setOutcome(null);
     setMissType(null);
+    setBadSnap(false);
     setIsGameWinner(false);
   };
 
@@ -62,8 +63,8 @@ export default function FieldGoalScreen() {
       Alert.alert("Missing Info", "Please select an outcome.");
       return;
     }
-    if (outcome === "missed" && !missType) {
-      Alert.alert("Missing Info", "Please select a miss type.");
+    if (outcome === "missed" && !missType && !badSnap) {
+      Alert.alert("Missing Info", "Please select a miss type or mark as Bad Snap.");
       return;
     }
     if (kickMode === "game" && !activeGame) {
@@ -82,7 +83,8 @@ export default function FieldGoalScreen() {
           los: Number(los),
           totalDistance: Number(los) + 17,
           outcome,
-          missType: outcome === "missed" ? missType : null,
+          missType: outcome === "missed" ? (missType ?? null) : null,
+          badSnap: outcome === "missed" ? badSnap : false,
         },
       });
       Haptics.notificationAsync(
@@ -150,7 +152,7 @@ export default function FieldGoalScreen() {
       borderWidth: 1,
     },
     missBtnText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
-    gameWinnerRow: {
+    badSnapRow: {
       flexDirection: "row",
       alignItems: "center",
       gap: 12,
@@ -163,6 +165,16 @@ export default function FieldGoalScreen() {
       borderWidth: 2,
       alignItems: "center",
       justifyContent: "center",
+    },
+    badSnapLabel: {
+      fontSize: 14,
+      fontFamily: "Inter_500Medium",
+    },
+    gameWinnerRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      paddingVertical: 4,
     },
     gameWinnerLabel: {
       fontSize: 14,
@@ -242,28 +254,47 @@ export default function FieldGoalScreen() {
             </View>
 
             {outcome === "missed" && (
-              <View>
-                <Text style={[s.cardTitle, { marginBottom: 8 }]}>Miss Type</Text>
-                <View style={s.missGrid}>
-                  {MISS_TYPES.map((m) => (
-                    <Pressable
-                      key={m.value}
-                      style={[
-                        s.missBtn,
-                        {
-                          backgroundColor: missType === m.value ? colors.primary : colors.secondary,
-                          borderColor: missType === m.value ? colors.primary : colors.border,
-                        },
-                      ]}
-                      onPress={() => setMissType(m.value)}
-                    >
-                      <Text style={[s.missBtnText, { color: missType === m.value ? "#fff" : colors.mutedForeground }]}>
-                        {m.label}
-                      </Text>
-                    </Pressable>
-                  ))}
+              <>
+                <View>
+                  <Text style={[s.cardTitle, { marginBottom: 8 }]}>Miss Type</Text>
+                  <View style={s.missGrid}>
+                    {MISS_TYPES.map((m) => (
+                      <Pressable
+                        key={m.value}
+                        style={[
+                          s.missBtn,
+                          {
+                            backgroundColor: missType === m.value ? colors.primary : colors.secondary,
+                            borderColor: missType === m.value ? colors.primary : colors.border,
+                          },
+                        ]}
+                        onPress={() => setMissType(missType === m.value ? null : m.value)}
+                      >
+                        <Text style={[s.missBtnText, { color: missType === m.value ? "#fff" : colors.mutedForeground }]}>
+                          {m.label}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
                 </View>
-              </View>
+
+                <Pressable style={s.badSnapRow} onPress={() => setBadSnap(!badSnap)}>
+                  <View
+                    style={[
+                      s.checkBox,
+                      {
+                        backgroundColor: badSnap ? colors.warning : "transparent",
+                        borderColor: badSnap ? colors.warning : colors.border,
+                      },
+                    ]}
+                  >
+                    {badSnap && <Feather name="check" size={14} color="#fff" />}
+                  </View>
+                  <Text style={[s.badSnapLabel, { color: badSnap ? colors.warning : colors.foreground }]}>
+                    Bad Snap
+                  </Text>
+                </Pressable>
+              </>
             )}
 
             {/* Game winner toggle — only visible in game mode after Made */}
