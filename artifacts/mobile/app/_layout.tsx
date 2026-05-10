@@ -16,6 +16,7 @@ import { setBaseUrl } from "@workspace/api-client-react";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppProvider } from "@/context/AppContext";
+import { ThemeProvider } from "@/context/ThemeContext";
 
 if (process.env.EXPO_PUBLIC_DOMAIN) {
   setBaseUrl(`https://${process.env.EXPO_PUBLIC_DOMAIN}`);
@@ -52,15 +53,17 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <ErrorBoundary>
-        <QueryClientProvider client={queryClient}>
-          <GestureHandlerRootView style={{ flex: 1 }}>
-            <KeyboardProvider>
-              <AppProvider>
-                <RootLayoutNav />
-              </AppProvider>
-            </KeyboardProvider>
-          </GestureHandlerRootView>
-        </QueryClientProvider>
+        <ThemeProvider>
+          <QueryClientProvider client={queryClient}>
+            <GestureHandlerRootView style={{ flex: 1 }}>
+              <KeyboardProvider>
+                <AppProvider>
+                  <RootLayoutNav />
+                </AppProvider>
+              </KeyboardProvider>
+            </GestureHandlerRootView>
+          </QueryClientProvider>
+        </ThemeProvider>
       </ErrorBoundary>
     </SafeAreaProvider>
   );

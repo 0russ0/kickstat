@@ -5,9 +5,10 @@ import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
 import { SymbolView } from "expo-symbols";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import React from "react";
-import { Platform, StyleSheet, View, useColorScheme } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 
 import { useColors } from "@/hooks/useColors";
+import { useTheme } from "@/context/ThemeContext";
 
 function NativeTabLayout() {
   return (
@@ -24,10 +25,6 @@ function NativeTabLayout() {
         <Icon sf={{ default: "bolt.circle", selected: "bolt.circle.fill" }} />
         <Label>Kickoff</Label>
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="games">
-        <Icon sf={{ default: "calendar", selected: "calendar.circle.fill" }} />
-        <Label>Games</Label>
-      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="practice">
         <Icon sf={{ default: "figure.run.circle", selected: "figure.run.circle.fill" }} />
         <Label>Practice</Label>
@@ -36,14 +33,18 @@ function NativeTabLayout() {
         <Icon sf={{ default: "list.bullet.clipboard", selected: "list.bullet.clipboard.fill" }} />
         <Label>History</Label>
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="more">
+        <Icon sf={{ default: "ellipsis.circle", selected: "ellipsis.circle.fill" }} />
+        <Label>More</Label>
+      </NativeTabs.Trigger>
     </NativeTabs>
   );
 }
 
 function ClassicTabLayout() {
   const colors = useColors();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
   const isIOS = Platform.OS === "ios";
   const isWeb = Platform.OS === "web";
 
@@ -65,7 +66,7 @@ function ClassicTabLayout() {
           isIOS ? (
             <BlurView
               intensity={100}
-              tint={isDark ? "dark" : "systemChromeMaterialDark"}
+              tint={isDark ? "dark" : "light"}
               style={StyleSheet.absoluteFill}
             />
           ) : isWeb ? (
@@ -115,18 +116,6 @@ function ClassicTabLayout() {
         }}
       />
       <Tabs.Screen
-        name="games"
-        options={{
-          title: "Games",
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="calendar" tintColor={color} size={24} />
-            ) : (
-              <Feather name="calendar" size={22} color={color} />
-            ),
-        }}
-      />
-      <Tabs.Screen
         name="practice"
         options={{
           title: "Practice",
@@ -148,6 +137,25 @@ function ClassicTabLayout() {
             ) : (
               <Feather name="list" size={22} color={color} />
             ),
+        }}
+      />
+      <Tabs.Screen
+        name="more"
+        options={{
+          title: "More",
+          tabBarIcon: ({ color }) =>
+            isIOS ? (
+              <SymbolView name="ellipsis.circle" tintColor={color} size={24} />
+            ) : (
+              <Feather name="more-horizontal" size={22} color={color} />
+            ),
+        }}
+      />
+      {/* Games is accessible via More menu — hidden from tab bar */}
+      <Tabs.Screen
+        name="games"
+        options={{
+          href: null,
         }}
       />
     </Tabs>

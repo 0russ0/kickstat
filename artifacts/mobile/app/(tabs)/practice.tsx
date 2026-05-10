@@ -27,6 +27,7 @@ import { KickHistoryList } from "@/components/KickHistoryList";
 import { CalendarPicker, todayEastern, formatDate } from "@/components/CalendarPicker";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
+import { SwipeableScreen } from "@/components/SwipeableScreen";
 import { formatHangtime } from "@/hooks/useStopwatch";
 import type { Kick } from "@workspace/api-client-react";
 
@@ -328,6 +329,7 @@ export default function PracticeScreen() {
   }
 
   return (
+  <SwipeableScreen tabIndex={3}>
     <View style={s.screen}>
       <AthleteBar />
       <ScrollView style={s.scroll} contentContainerStyle={s.content}>
@@ -398,5 +400,6 @@ export default function PracticeScreen() {
         />
       )}
     </View>
+  </SwipeableScreen>
   );
 }

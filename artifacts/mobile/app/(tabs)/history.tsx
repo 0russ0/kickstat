@@ -1,5 +1,12 @@
-import React, { useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useMemo, useRef } from "react";
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { AthleteBar } from "@/components/AthleteBar";
 import { KickHistoryList } from "@/components/KickHistoryList";
 import { useApp } from "@/context/AppContext";
@@ -7,16 +14,26 @@ import { useColors } from "@/hooks/useColors";
 import { formatHangtime } from "@/hooks/useStopwatch";
 import { useGetKicks, getGetKicksQueryKey } from "@workspace/api-client-react";
 import type { Kick } from "@workspace/api-client-react";
+import { useRouter } from "expo-router";
+import { useState } from "react";
 
 type Period = "practice" | "game" | "season" | "career";
+type KickRecord = Kick & { isGameWinner?: boolean | null };
+
+const PERIODS: { key: Period; label: string }[] = [
+  { key: "practice", label: "Practice" },
+  { key: "game", label: "Game" },
+  { key: "season", label: "Season" },
+  { key: "career", label: "Career" },
+];
 
 function startOfSeason(): Date {
   const now = new Date();
   const year = now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1;
-  return new Date(year, 7, 1); // Aug 1
+  return new Date(year, 7, 1);
 }
 
-function computeStats(kicks: Kick[]) {
+function computeStats(kicks: KickRecord[]) {
   const fgKicks = kicks.filter((k) => k.kickType === "field_goal");
   const puntKicks = kicks.filter((k) => k.kickType === "punt");
   const koKicks = kicks.filter((k) => k.kickType === "kickoff");
@@ -25,13 +42,19 @@ function computeStats(kicks: Kick[]) {
   const fgMade = fgKicks.filter(
     (k) => (k.data as Record<string, unknown>)["outcome"] === "made",
   ).length;
-  const fgDistances = fgKicks
+  const fgMadeDistances = fgKicks
+    .filter((k) => (k.data as Record<string, unknown>)["outcome"] === "made")
     .map((k) => (k.data as Record<string, unknown>)["totalDistance"] as number)
-    .filter((d) => d != null && !isNaN(d));
+    .filter((d): d is number => d != null && !isNaN(d));
+  const fgAllDistances = fgKicks
+    .map((k) => (k.data as Record<string, unknown>)["totalDistance"] as number)
+    .filter((d): d is number => d != null && !isNaN(d));
   const fgAvgDist =
-    fgDistances.length > 0
-      ? fgDistances.reduce((a, b) => a + b, 0) / fgDistances.length
+    fgAllDistances.length > 0
+      ? fgAllDistances.reduce((a, b) => a + b, 0) / fgAllDistances.length
       : null;
+  const fgLongest = fgMadeDistances.length > 0 ? Math.max(...fgMadeDistances) : null;
+  const fgGameWinners = fgKicks.filter((k) => k.isGameWinner === true).length;
 
   const puntTotal = puntKicks.length;
   const puntDistances = puntKicks
@@ -41,9 +64,10 @@ function computeStats(kicks: Kick[]) {
     puntDistances.length > 0
       ? puntDistances.reduce((a, b) => a + b, 0) / puntDistances.length
       : null;
+  const puntLongest = puntDistances.length > 0 ? Math.max(...puntDistances) : null;
   const puntHangtimes = puntKicks
     .map((k) => (k.data as Record<string, unknown>)["hangtime"] as number)
-    .filter((h) => h != null && h > 0);
+    .filter((h): h is number => h != null && h > 0);
   const puntAvgHangtime =
     puntHangtimes.length > 0
       ? puntHangtimes.reduce((a, b) => a + b, 0) / puntHangtimes.length
@@ -55,7 +79,7 @@ function computeStats(kicks: Kick[]) {
   ).length;
   const koHangtimes = koKicks
     .map((k) => (k.data as Record<string, unknown>)["hangtime"] as number)
-    .filter((h) => h != null && h > 0);
+    .filter((h): h is number => h != null && h > 0);
   const koAvgHangtime =
     koHangtimes.length > 0
       ? koHangtimes.reduce((a, b) => a + b, 0) / koHangtimes.length
@@ -63,8 +87,8 @@ function computeStats(kicks: Kick[]) {
 
   return {
     total: kicks.length,
-    fg: { total: fgTotal, made: fgMade, avgDist: fgAvgDist },
-    punt: { total: puntTotal, avgDist: puntAvgDist, avgHangtime: puntAvgHangtime },
+    fg: { total: fgTotal, made: fgMade, avgDist: fgAvgDist, longest: fgLongest, gameWinners: fgGameWinners },
+    punt: { total: puntTotal, avgDist: puntAvgDist, longest: puntLongest, avgHangtime: puntAvgHangtime },
     ko: { total: koTotal, touchbacks: koTouchbacks, avgHangtime: koAvgHangtime },
   };
 }
@@ -72,14 +96,14 @@ function computeStats(kicks: Kick[]) {
 function StatRow({ label, value }: { label: string; value: string | number }) {
   const colors = useColors();
   return (
-    <View style={statRowStyles.row}>
-      <Text style={[statRowStyles.label, { color: colors.mutedForeground }]}>{label}</Text>
-      <Text style={[statRowStyles.value, { color: colors.foreground }]}>{value}</Text>
+    <View style={statRowSt.row}>
+      <Text style={[statRowSt.label, { color: colors.mutedForeground }]}>{label}</Text>
+      <Text style={[statRowSt.value, { color: colors.foreground }]}>{value}</Text>
     </View>
   );
 }
 
-const statRowStyles = StyleSheet.create({
+const statRowSt = StyleSheet.create({
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -100,12 +124,14 @@ function avg(val: number | null, unit: string): string {
   return `${Math.round(val)}${unit}`;
 }
 
-function StatsSection({
-  label,
-  stats,
+function SectionCard({
+  title,
+  children,
+  empty,
 }: {
-  label: string;
-  stats: ReturnType<typeof computeStats>;
+  title: string;
+  children?: React.ReactNode;
+  empty?: boolean;
 }) {
   const colors = useColors();
   const s = StyleSheet.create({
@@ -115,7 +141,7 @@ function StatsSection({
       color: colors.mutedForeground,
       letterSpacing: 1,
       textTransform: "uppercase",
-      marginBottom: 2,
+      marginBottom: 4,
     },
     card: {
       backgroundColor: colors.card,
@@ -123,84 +149,107 @@ function StatsSection({
       borderWidth: 1,
       borderColor: colors.border,
       paddingHorizontal: 16,
-      paddingVertical: 4,
-      marginBottom: 2,
+      paddingVertical: empty ? 16 : 4,
+    },
+    emptyText: {
+      color: colors.mutedForeground,
+      fontFamily: "Inter_400Regular",
+      fontSize: 13,
+      textAlign: "center",
     },
     divider: { height: 1, backgroundColor: colors.border },
   });
-
-  if (stats.total === 0) {
-    return (
-      <View>
-        <Text style={s.header}>{label}</Text>
-        <View style={[s.card, { paddingVertical: 16, alignItems: "center" }]}>
-          <Text style={{ color: colors.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 13 }}>
-            No kicks recorded
-          </Text>
-        </View>
-      </View>
-    );
-  }
-
   return (
     <View>
-      <Text style={s.header}>{label}</Text>
+      <Text style={s.header}>{title}</Text>
       <View style={s.card}>
-        {stats.fg.total > 0 && (
-          <>
-            <StatRow label="FG Attempts" value={stats.fg.total} />
-            <View style={s.divider} />
-            <StatRow label="FG Made" value={`${stats.fg.made} / ${stats.fg.total}`} />
-            <View style={s.divider} />
-            <StatRow label="FG %" value={pct(stats.fg.made, stats.fg.total)} />
-            {stats.fg.avgDist != null && (
-              <>
-                <View style={s.divider} />
-                <StatRow label="Avg FG Distance" value={avg(stats.fg.avgDist, "yd")} />
-              </>
-            )}
-          </>
-        )}
-        {stats.fg.total > 0 && (stats.punt.total > 0 || stats.ko.total > 0) && (
-          <View style={[s.divider, { marginVertical: 4, backgroundColor: colors.border }]} />
-        )}
-        {stats.punt.total > 0 && (
-          <>
-            <StatRow label="Punts" value={stats.punt.total} />
-            {stats.punt.avgDist != null && (
-              <>
-                <View style={s.divider} />
-                <StatRow label="Avg Punt Distance" value={avg(stats.punt.avgDist, "yd")} />
-              </>
-            )}
-            {stats.punt.avgHangtime != null && (
-              <>
-                <View style={s.divider} />
-                <StatRow label="Avg Punt Hangtime" value={formatHangtime(stats.punt.avgHangtime)} />
-              </>
-            )}
-          </>
-        )}
-        {stats.punt.total > 0 && stats.ko.total > 0 && (
-          <View style={[s.divider, { marginVertical: 4 }]} />
-        )}
-        {stats.ko.total > 0 && (
-          <>
-            <StatRow label="Kickoffs" value={stats.ko.total} />
-            <View style={s.divider} />
-            <StatRow label="Touchbacks" value={`${stats.ko.touchbacks} / ${stats.ko.total}`} />
-            <View style={s.divider} />
-            <StatRow label="Touchback %" value={pct(stats.ko.touchbacks, stats.ko.total)} />
-            {stats.ko.avgHangtime != null && (
-              <>
-                <View style={s.divider} />
-                <StatRow label="Avg KO Hangtime" value={formatHangtime(stats.ko.avgHangtime)} />
-              </>
-            )}
-          </>
+        {empty ? (
+          <Text style={s.emptyText}>No kicks recorded</Text>
+        ) : (
+          children
         )}
       </View>
     </View>
+  );
+}
+
+function Divider() {
+  const colors = useColors();
+  return <View style={{ height: 1, backgroundColor: colors.border }} />;
+}
+
+function FGStatsCard({
+  stats,
+  showGameWinners,
+}: {
+  stats: ReturnType<typeof computeStats>["fg"];
+  showGameWinners: boolean;
+}) {
+  if (stats.total === 0) return <SectionCard title="Field Goals" empty />;
+  return (
+    <SectionCard title="Field Goals">
+      <StatRow label="Attempts" value={stats.total} />
+      <Divider />
+      <StatRow label="Made" value={`${stats.made} / ${stats.total}`} />
+      <Divider />
+      <StatRow label="FG %" value={pct(stats.made, stats.total)} />
+      <Divider />
+      <StatRow label="Avg Distance" value={avg(stats.avgDist, "yd")} />
+      <Divider />
+      <StatRow label="Longest FG" value={stats.longest != null ? `${stats.longest}yd` : "—"} />
+      {showGameWinners && (
+        <>
+          <Divider />
+          <StatRow label="Game Winners" value={stats.gameWinners} />
+        </>
+      )}
+    </SectionCard>
+  );
+}
+
+function PuntStatsCard({ stats }: { stats: ReturnType<typeof computeStats>["punt"] }) {
+  if (stats.total === 0) return <SectionCard title="Punts" empty />;
+  return (
+    <SectionCard title="Punts">
+      <StatRow label="Total Punts" value={stats.total} />
+      {stats.avgDist != null && (
+        <>
+          <Divider />
+          <StatRow label="Avg Distance" value={avg(stats.avgDist, "yd")} />
+        </>
+      )}
+      {stats.longest != null && (
+        <>
+          <Divider />
+          <StatRow label="Longest Punt" value={`${stats.longest}yd`} />
+        </>
+      )}
+      {stats.avgHangtime != null && (
+        <>
+          <Divider />
+          <StatRow label="Avg Hangtime" value={formatHangtime(stats.avgHangtime)} />
+        </>
+      )}
+    </SectionCard>
+  );
+}
+
+function KOStatsCard({ stats }: { stats: ReturnType<typeof computeStats>["ko"] }) {
+  if (stats.total === 0) return <SectionCard title="Kickoffs" empty />;
+  return (
+    <SectionCard title="Kickoffs">
+      <StatRow label="Total Kickoffs" value={stats.total} />
+      <Divider />
+      <StatRow label="Touchbacks" value={`${stats.touchbacks} / ${stats.total}`} />
+      <Divider />
+      <StatRow label="Touchback %" value={pct(stats.touchbacks, stats.total)} />
+      {stats.avgHangtime != null && (
+        <>
+          <Divider />
+          <StatRow label="Avg Hangtime" value={formatHangtime(stats.avgHangtime)} />
+        </>
+      )}
+    </SectionCard>
   );
 }
 
@@ -208,6 +257,7 @@ export default function HistoryScreen() {
   const colors = useColors();
   const { activeAthleteId } = useApp();
   const [period, setPeriod] = useState<Period>("career");
+  const router = useRouter();
 
   const allKicksParams = { athleteId: activeAthleteId ?? undefined, limit: 1000 };
   const { data: allKicks = [] } = useGetKicks(allKicksParams, {
@@ -217,25 +267,47 @@ export default function HistoryScreen() {
     },
   });
 
-  const { kicks, label, historyFilter } = useMemo(() => {
+  const periodIndex = PERIODS.findIndex((p) => p.key === period);
+
+  const swipeGesture = Gesture.Pan()
+    .runOnJS(true)
+    .activeOffsetX([-30, 30])
+    .failOffsetY([-15, 15])
+    .onEnd((e) => {
+      if (e.velocityX < -300 && e.translationX < -30 && periodIndex < PERIODS.length - 1) {
+        setPeriod(PERIODS[periodIndex + 1].key);
+      } else if (e.velocityX > 300 && e.translationX > 30 && periodIndex > 0) {
+        setPeriod(PERIODS[periodIndex - 1].key);
+      } else if (e.velocityX < -400 && e.translationX < -50 && periodIndex === PERIODS.length - 1) {
+        router.navigate("/(tabs)/more" as never);
+      }
+    });
+
+  const { kicks, label, showGameWinners } = useMemo(() => {
     switch (period) {
       case "practice": {
-        const k = allKicks.filter((k) => k.gameId == null);
-        return { kicks: k, label: "Practice Stats", historyFilter: { practiceOnly: true } };
+        const k = (allKicks as KickRecord[]).filter((k) => k.gameId == null);
+        return { kicks: k, label: "Practice Stats", showGameWinners: false };
       }
       case "game": {
-        const k = allKicks.filter((k) => k.gameId != null);
-        return { kicks: k, label: "Game Stats", historyFilter: {} };
+        const k = (allKicks as KickRecord[]).filter((k) => k.gameId != null);
+        return { kicks: k, label: "Game Stats", showGameWinners: true };
       }
       case "season": {
         const cutoff = startOfSeason();
-        const k = allKicks.filter((k) => k.gameId != null && new Date(k.createdAt) >= cutoff);
-        return { kicks: k, label: `Season Stats (Aug ${cutoff.getFullYear()} – Present)`, historyFilter: {} };
+        const k = (allKicks as KickRecord[]).filter(
+          (k) => k.gameId != null && new Date(k.createdAt) >= cutoff,
+        );
+        return {
+          kicks: k,
+          label: `Season Stats (Aug ${cutoff.getFullYear()}–Present)`,
+          showGameWinners: true,
+        };
       }
       case "career":
       default: {
-        const k = allKicks.filter((kk) => kk.gameId != null);
-        return { kicks: k, label: "Career Stats (Games Only)", historyFilter: {} };
+        const k = (allKicks as KickRecord[]).filter((kk) => kk.gameId != null);
+        return { kicks: k, label: "Career Stats (Games Only)", showGameWinners: true };
       }
     }
   }, [allKicks, period]);
@@ -245,8 +317,8 @@ export default function HistoryScreen() {
   const s = StyleSheet.create({
     screen: { flex: 1, backgroundColor: colors.background },
     scroll: { flex: 1 },
-    content: { padding: 16, gap: 16, paddingBottom: 40 },
-    segmentWrap: {
+    content: { padding: 16, gap: 16, paddingBottom: 120 },
+    segWrap: {
       flexDirection: "row",
       backgroundColor: colors.secondary,
       borderRadius: 12,
@@ -265,50 +337,71 @@ export default function HistoryScreen() {
       fontFamily: "Inter_600SemiBold",
       letterSpacing: 0.2,
     },
+    periodHint: {
+      fontSize: 10,
+      fontFamily: "Inter_400Regular",
+      color: colors.mutedForeground,
+      textAlign: "center",
+      opacity: 0.6,
+      marginTop: 2,
+    },
+    sectionHeader: {
+      fontSize: 15,
+      fontFamily: "Inter_700Bold",
+      color: colors.foreground,
+      marginBottom: 2,
+    },
+    statsGroup: { gap: 12 },
   });
 
-  const PERIODS: { key: Period; label: string }[] = [
-    { key: "practice", label: "Practice" },
-    { key: "game", label: "Game" },
-    { key: "season", label: "Season" },
-    { key: "career", label: "Career" },
-  ];
-
-  const historyGameId = period === "game" ? undefined : undefined;
   const historyPracticeOnly = period === "practice" ? true : undefined;
 
   return (
-    <View style={s.screen}>
-      <AthleteBar />
-      <ScrollView style={s.scroll} contentContainerStyle={s.content}>
-        <View style={s.segmentWrap}>
-          {PERIODS.map((p) => (
-            <Pressable
-              key={p.key}
-              style={[
-                s.segBtn,
-                { backgroundColor: period === p.key ? colors.primary : "transparent" },
-              ]}
-              onPress={() => setPeriod(p.key)}
-            >
-              <Text
-                style={[
-                  s.segLabel,
-                  { color: period === p.key ? colors.primaryForeground : colors.mutedForeground },
-                ]}
-              >
-                {p.label}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+    <GestureDetector gesture={swipeGesture}>
+      <View style={s.screen}>
+        <AthleteBar />
+        <ScrollView style={s.scroll} contentContainerStyle={s.content}>
+          {/* Period selector */}
+          <View>
+            <View style={s.segWrap}>
+              {PERIODS.map((p) => (
+                <Pressable
+                  key={p.key}
+                  style={[
+                    s.segBtn,
+                    { backgroundColor: period === p.key ? colors.primary : "transparent" },
+                  ]}
+                  onPress={() => setPeriod(p.key)}
+                >
+                  <Text
+                    style={[
+                      s.segLabel,
+                      {
+                        color:
+                          period === p.key ? colors.primaryForeground : colors.mutedForeground,
+                      },
+                    ]}
+                  >
+                    {p.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+            <Text style={s.periodHint}>Swipe left/right to change period</Text>
+          </View>
 
-        <StatsSection label={label} stats={stats} />
+          {/* Stats — three separate cards */}
+          <Text style={s.sectionHeader}>{label}</Text>
+          <View style={s.statsGroup}>
+            <FGStatsCard stats={stats.fg} showGameWinners={showGameWinners} />
+            <PuntStatsCard stats={stats.punt} />
+            <KOStatsCard stats={stats.ko} />
+          </View>
 
-        <KickHistoryList
-          practiceOnly={historyPracticeOnly}
-        />
-      </ScrollView>
-    </View>
+          {/* Recent kicks */}
+          <KickHistoryList practiceOnly={historyPracticeOnly} />
+        </ScrollView>
+      </View>
+    </GestureDetector>
   );
 }

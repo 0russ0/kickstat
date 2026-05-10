@@ -18,6 +18,7 @@ import { ModeSelector } from "@/components/ModeSelector";
 import { StopwatchButton } from "@/components/StopwatchButton";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
+import { SwipeableScreen } from "@/components/SwipeableScreen";
 import { useStopwatch } from "@/hooks/useStopwatch";
 
 type TouchbackType = "endzone" | "out_of_endzone";
@@ -157,6 +158,7 @@ export default function KickoffScreen() {
   ];
 
   return (
+  <SwipeableScreen tabIndex={2}>
     <View style={s.screen}>
       <AthleteBar />
       <KickTypeToggle active="kickoff" />
@@ -281,5 +283,6 @@ export default function KickoffScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
+  </SwipeableScreen>
   );
 }

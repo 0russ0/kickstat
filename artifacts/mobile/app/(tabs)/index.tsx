@@ -18,6 +18,7 @@ import { KickTypeToggle } from "@/components/KickTypeToggle";
 import { ModeSelector } from "@/components/ModeSelector";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
+import { SwipeableScreen } from "@/components/SwipeableScreen";
 
 type Outcome = "made" | "missed" | null;
 type MissType = "left" | "right" | "short" | "blocked";
@@ -196,6 +197,7 @@ export default function FieldGoalScreen() {
   });
 
   return (
+  <SwipeableScreen tabIndex={0}>
     <View style={s.screen}>
       <AthleteBar />
       <KickTypeToggle active="fg" />
@@ -330,5 +332,6 @@ export default function FieldGoalScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
+  </SwipeableScreen>
   );
 }

@@ -18,6 +18,7 @@ import { ModeSelector } from "@/components/ModeSelector";
 import { StopwatchButton } from "@/components/StopwatchButton";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
+import { SwipeableScreen } from "@/components/SwipeableScreen";
 import { useStopwatch } from "@/hooks/useStopwatch";
 
 type FieldSide = "own" | "opponent";
@@ -248,6 +249,7 @@ export default function PuntScreen() {
   });
 
   return (
+  <SwipeableScreen tabIndex={1}>
     <View style={s.screen}>
       <AthleteBar />
       <ModeSelector />
@@ -486,5 +488,6 @@ export default function PuntScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
+  </SwipeableScreen>
   );
 }
