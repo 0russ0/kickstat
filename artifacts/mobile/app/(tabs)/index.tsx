@@ -14,6 +14,7 @@ import * as Haptics from "expo-haptics";
 import { Feather } from "@expo/vector-icons";
 import { AthleteBar } from "@/components/AthleteBar";
 import { KickHistoryList } from "@/components/KickHistoryList";
+import { KickTypeToggle } from "@/components/KickTypeToggle";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 
@@ -181,6 +182,7 @@ export default function FieldGoalScreen() {
   return (
     <View style={s.screen}>
       <AthleteBar />
+      <KickTypeToggle active="fg" />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}

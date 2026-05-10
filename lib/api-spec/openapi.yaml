@@ -294,6 +294,12 @@ components:
           nullable: true
         hangtime:
           type: number
+        landingYard:
+          type: number
+          nullable: true
+        returnYards:
+          type: number
+          nullable: true
       required:
         - touchback
         - hangtime

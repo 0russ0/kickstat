@@ -91,6 +91,8 @@ export interface KickoffData {
   touchback: boolean;
   touchbackType?: KickoffDataTouchbackType;
   hangtime: number;
+  landingYard?: number | null;
+  returnYards?: number | null;
 }
 
 export type KickData = { [key: string]: unknown };
