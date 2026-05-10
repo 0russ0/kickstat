@@ -180,6 +180,64 @@ export const DeleteGameResponse = zod.object({
 });
 
 /**
+ * @summary List practice sessions for an athlete
+ */
+export const GetPracticeSessionsQueryParams = zod.object({
+  athleteId: zod.coerce.string(),
+});
+
+export const GetPracticeSessionsResponseItem = zod.object({
+  id: zod.string(),
+  athleteId: zod.string(),
+  date: zod.string(),
+  notes: zod.string().nullish(),
+  createdAt: zod.string(),
+});
+export const GetPracticeSessionsResponse = zod.array(
+  GetPracticeSessionsResponseItem,
+);
+
+/**
+ * @summary Create a new practice session
+ */
+export const CreatePracticeSessionBody = zod.object({
+  athleteId: zod.string(),
+  date: zod.string(),
+  notes: zod.string().nullish(),
+});
+
+/**
+ * @summary Update a practice session
+ */
+export const UpdatePracticeSessionParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdatePracticeSessionBody = zod.object({
+  date: zod.string().optional(),
+  notes: zod.string().nullish(),
+});
+
+export const UpdatePracticeSessionResponse = zod.object({
+  id: zod.string(),
+  athleteId: zod.string(),
+  date: zod.string(),
+  notes: zod.string().nullish(),
+  createdAt: zod.string(),
+});
+
+/**
+ * @summary Delete a practice session (and dissociate its kicks)
+ */
+export const DeletePracticeSessionParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const DeletePracticeSessionResponse = zod.object({
+  success: zod.boolean(),
+});
+
+/**
  * @summary List kicks with optional filters
  */
 export const getKicksQueryLimitDefault = 10;
@@ -189,6 +247,7 @@ export const GetKicksQueryParams = zod.object({
   kickType: zod.enum(["field_goal", "punt", "kickoff"]).optional(),
   gameId: zod.coerce.string().optional(),
   practiceOnly: zod.coerce.boolean().optional(),
+  practiceSessionId: zod.coerce.string().optional(),
   limit: zod.coerce.number().default(getKicksQueryLimitDefault),
 });
 
@@ -196,6 +255,7 @@ export const GetKicksResponseItem = zod.object({
   id: zod.string(),
   athleteId: zod.string(),
   gameId: zod.string().nullish(),
+  practiceSessionId: zod.string().nullish(),
   kickType: zod.enum(["field_goal", "punt", "kickoff"]),
   data: zod.object({}).passthrough(),
   isGameWinner: zod.boolean(),
@@ -209,6 +269,7 @@ export const GetKicksResponse = zod.array(GetKicksResponseItem);
 export const CreateKickBody = zod.object({
   athleteId: zod.string(),
   gameId: zod.string().nullish(),
+  practiceSessionId: zod.string().nullish(),
   kickType: zod.enum(["field_goal", "punt", "kickoff"]),
   data: zod.object({}).passthrough(),
   isGameWinner: zod.boolean().optional(),

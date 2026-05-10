@@ -47,12 +47,13 @@ router.get("/kicks/stats/:athleteId", async (req, res) => {
 });
 
 router.get("/kicks", async (req, res) => {
-  const { athleteId, kickType, gameId, practiceOnly, limit } = req.query;
+  const { athleteId, kickType, gameId, practiceOnly, practiceSessionId, limit } = req.query;
   const conditions = [];
 
   if (athleteId && typeof athleteId === "string") conditions.push(eq(kicksTable.athleteId, athleteId));
   if (kickType && typeof kickType === "string") conditions.push(eq(kicksTable.kickType, kickType as "field_goal" | "punt" | "kickoff"));
   if (gameId && typeof gameId === "string") conditions.push(eq(kicksTable.gameId, gameId));
+  if (practiceSessionId && typeof practiceSessionId === "string") conditions.push(eq(kicksTable.practiceSessionId, practiceSessionId));
   if (practiceOnly === "true") conditions.push(isNull(kicksTable.gameId));
 
   const limitN = limit ? parseInt(limit as string, 10) : 10;
@@ -69,6 +70,7 @@ router.get("/kicks", async (req, res) => {
       id: k.id,
       athleteId: k.athleteId,
       gameId: k.gameId ?? null,
+      practiceSessionId: k.practiceSessionId ?? null,
       kickType: k.kickType,
       data: k.data,
       isGameWinner: k.isGameWinner,
@@ -89,6 +91,7 @@ router.post("/kicks", async (req, res) => {
     .values({
       athleteId: parsed.data.athleteId,
       gameId: parsed.data.gameId ?? null,
+      practiceSessionId: (parsed.data as Record<string, unknown>)["practiceSessionId"] as string ?? null,
       kickType: parsed.data.kickType,
       data: parsed.data.data,
       isGameWinner: parsed.data.isGameWinner ?? false,
@@ -99,6 +102,7 @@ router.post("/kicks", async (req, res) => {
     id: kick.id,
     athleteId: kick.athleteId,
     gameId: kick.gameId ?? null,
+    practiceSessionId: kick.practiceSessionId ?? null,
     kickType: kick.kickType,
     data: kick.data,
     isGameWinner: kick.isGameWinner,
@@ -128,6 +132,7 @@ router.patch("/kicks/:id", async (req, res) => {
     id: updated.id,
     athleteId: updated.athleteId,
     gameId: updated.gameId ?? null,
+    practiceSessionId: updated.practiceSessionId ?? null,
     kickType: updated.kickType,
     data: updated.data,
     isGameWinner: updated.isGameWinner,

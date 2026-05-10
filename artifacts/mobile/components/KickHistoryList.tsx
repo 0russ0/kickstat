@@ -11,7 +11,10 @@ import { EditKickModal } from "@/components/EditKickModal";
 interface Props {
   kickType?: KickType;
   practiceOnly?: boolean;
+  practiceSessionId?: string;
   gameId?: string;
+  /** Max items to display (default 10). All are still fetched for reset. */
+  displayLimit?: number;
 }
 
 const RESULT_LABELS: Record<string, string> = {
@@ -32,16 +35,16 @@ function formatKickSummary(kick: Kick): string {
     const los = d["los"] as number;
     const totalDist = d["totalDistance"] as number;
     const missType = d["missType"] as string | undefined;
-    const badSnap = d["badSnap"] ? " (Bad Snap)" : "";
-    const outcomeStr = outcome === "made" ? `✓ Made${badSnap}` : `✗ ${missType ?? "Missed"}${badSnap}`;
-    return `${outcomeStr} · ${totalDist}yd (LOS ${los})`;
+    const badSnapSuffix = d["badSnap"] ? " · Bad Snap" : "";
+    const outcomeStr = outcome === "made" ? `✓ Made` : `✗ ${missType ?? "Missed"}`;
+    return `${outcomeStr}${badSnapSuffix} · ${totalDist}yd (LOS ${los})`;
   }
 
   if (kick.kickType === "punt") {
     const dist = d["distance"] as number | null | undefined;
     const ht = d["hangtime"] as number;
     const result = d["result"] as string | null | undefined;
-    const badSnap = d["badSnap"] ? " · Bad Snap" : "";
+    const badSnapSuffix = d["badSnap"] ? " · Bad Snap" : "";
     const returnYards = d["returnYards"] as number | null | undefined;
 
     let distStr: string;
@@ -53,11 +56,10 @@ function formatKickSummary(kick: Kick): string {
       distStr = "—";
     }
 
-    let suffix = ` · ${formatHangtime(ht)}${badSnap}`;
+    let suffix = ` · ${formatHangtime(ht)}${badSnapSuffix}`;
     if (result === "punt_return" && returnYards != null) {
       suffix += ` · ${returnYards}yd ret`;
     }
-
     return `${distStr}${suffix}`;
   }
 
@@ -89,7 +91,7 @@ function formatTime(dateStr: string): string {
 
 interface KickRowProps {
   kick: Kick;
-  onDelete: (id: string) => void;
+  onDelete: (kick: Kick) => void;
   onEdit: (kick: Kick) => void;
 }
 
@@ -122,12 +124,14 @@ function KickRow({ kick, onDelete, onEdit }: KickRowProps) {
           {formatTime(kick.createdAt)}
         </Text>
       </View>
-      <Pressable style={rowStyles.actionBtn} onPress={() => onEdit(kick)} hitSlop={8}>
-        <Feather name="edit-2" size={14} color={colors.primary} />
-      </Pressable>
-      <Pressable style={rowStyles.actionBtn} onPress={() => onDelete(kick.id)} hitSlop={8}>
-        <Feather name="trash-2" size={15} color={colors.destructive} />
-      </Pressable>
+      <View style={rowStyles.actions}>
+        <Pressable style={rowStyles.actionBtn} onPress={() => onEdit(kick)} hitSlop={8}>
+          <Feather name="edit-2" size={14} color={colors.primary} />
+        </Pressable>
+        <Pressable style={rowStyles.actionBtn} onPress={() => onDelete(kick)} hitSlop={8}>
+          <Feather name="trash-2" size={15} color={colors.destructive} />
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -167,44 +171,71 @@ const rowStyles = StyleSheet.create({
     fontSize: 11,
     fontFamily: "Inter_400Regular",
   },
+  actions: {
+    flexDirection: "row",
+    gap: 14,
+    alignItems: "center",
+  },
   actionBtn: {
     padding: 4,
   },
 });
 
-export function KickHistoryList({ kickType, practiceOnly, gameId }: Props) {
+export function KickHistoryList({ kickType, practiceOnly, practiceSessionId, gameId, displayLimit = 10 }: Props) {
   const colors = useColors();
   const { activeAthleteId, removeKick } = useApp();
   const [editingKick, setEditingKick] = useState<Kick | null>(null);
+
+  // Fetch all kicks for practice contexts (needed for reset to work on > 10 kicks)
+  const fetchLimit = practiceOnly || practiceSessionId ? 1000 : 10;
 
   const params = {
     athleteId: activeAthleteId ?? undefined,
     kickType,
     gameId,
+    practiceSessionId,
     practiceOnly: practiceOnly ? true : undefined,
-    limit: 10,
+    limit: fetchLimit,
   };
 
-  const { data: kicks = [], isLoading } = useGetKicks(params, {
+  const { data: allKicks = [], isLoading } = useGetKicks(params, {
     query: {
       queryKey: getGetKicksQueryKey(params),
       enabled: !!activeAthleteId,
     },
   });
 
-  const handleReset = () => {
+  const kicks = allKicks.slice(0, displayLimit);
+
+  const confirmDelete = (kick: Kick) => {
     Alert.alert(
-      "Reset Practice Kicks",
-      `Delete all ${kickType ? kickType.replace("_", " ") : ""} practice kicks for this athlete? This cannot be undone.`,
+      "Delete Kick",
+      "Are you sure you want to delete this kick? This cannot be undone.",
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Reset",
+          text: "Delete",
+          style: "destructive",
+          onPress: () => removeKick(kick.id),
+        },
+      ],
+    );
+  };
+
+  const handleReset = () => {
+    const typeName = kickType ? kickType.replace("_", " ") : "practice";
+    Alert.alert(
+      "Reset Practice Kicks",
+      `Delete all ${typeName} practice kicks for this athlete? This cannot be undone.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Reset All",
           style: "destructive",
           onPress: async () => {
-            for (const kick of kicks) {
-              await removeKick(kick.id);
-            }
+            // Snapshot all IDs before any deletes so re-renders don't affect the list
+            const ids = allKicks.map((k) => k.id);
+            await Promise.all(ids.map((id) => removeKick(id)));
           },
         },
       ],
@@ -243,11 +274,13 @@ export function KickHistoryList({ kickType, practiceOnly, gameId }: Props) {
     <>
       <View style={listStyles.wrapper}>
         <View style={listStyles.headingRow}>
-          <Text style={[listStyles.heading, { color: colors.mutedForeground }]}>Recent Kicks</Text>
-          {practiceOnly && kicks.length > 0 && (
+          <Text style={[listStyles.heading, { color: colors.mutedForeground }]}>
+            Recent Kicks{allKicks.length > displayLimit ? ` (showing ${displayLimit} of ${allKicks.length})` : ""}
+          </Text>
+          {(practiceOnly || practiceSessionId) && allKicks.length > 0 && (
             <Pressable style={[listStyles.resetBtn, { borderColor: colors.destructive }]} onPress={handleReset}>
               <Feather name="trash-2" size={12} color={colors.destructive} />
-              <Text style={[listStyles.resetBtnText, { color: colors.destructive }]}>Reset</Text>
+              <Text style={[listStyles.resetBtnText, { color: colors.destructive }]}>Reset All</Text>
             </Pressable>
           )}
         </View>
@@ -255,7 +288,7 @@ export function KickHistoryList({ kickType, practiceOnly, gameId }: Props) {
           data={kicks}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <KickRow kick={item} onDelete={removeKick} onEdit={setEditingKick} />
+            <KickRow kick={item} onDelete={confirmDelete} onEdit={setEditingKick} />
           )}
           scrollEnabled={false}
           showsVerticalScrollIndicator={false}

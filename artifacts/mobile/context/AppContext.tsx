@@ -10,7 +10,7 @@ import {
   getGetKicksQueryKey,
   getGetGamesQueryKey,
 } from "@workspace/api-client-react";
-import type { Athlete, CreateKickBody, Game } from "@workspace/api-client-react";
+import type { Athlete, CreateKickBody, Game, PracticeSession } from "@workspace/api-client-react";
 
 export type KickMode = "practice" | "game";
 
@@ -29,6 +29,8 @@ interface AppContextValue {
   setKickMode: (mode: KickMode) => void;
   activeGame: Game | null;
   setActiveGame: (game: Game | null) => void;
+  activePracticeSession: PracticeSession | null;
+  setActivePracticeSession: (s: PracticeSession | null) => void;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -39,6 +41,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isSyncing, setIsSyncing] = useState(false);
   const [kickMode, setKickMode] = useState<KickMode>("practice");
   const [activeGame, setActiveGame] = useState<Game | null>(null);
+  const [activePracticeSession, setActivePracticeSession] = useState<PracticeSession | null>(null);
 
   const { data: athletes = [], isLoading: isLoadingAthletes } = useGetAthletes({
     query: { queryKey: getGetAthletesQueryKey() },
@@ -50,9 +53,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [athletes, activeAthleteId]);
 
-  // Clear active game when switching to practice
+  // Clear active game when switching to practice; clear active session when switching to game
   useEffect(() => {
     if (kickMode === "practice") setActiveGame(null);
+    if (kickMode === "game") setActivePracticeSession(null);
   }, [kickMode]);
 
   const createAthleteMutation = useCreateAthlete();
@@ -141,6 +145,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setKickMode,
         activeGame,
         setActiveGame,
+        activePracticeSession,
+        setActivePracticeSession,
       }}
     >
       {children}

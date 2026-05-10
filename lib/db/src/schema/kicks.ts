@@ -3,6 +3,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { athletesTable } from "./athletes";
 import { gamesTable } from "./games";
+import { practiceSessionsTable } from "./practice-sessions";
 
 export const kicksTable = pgTable("kicks", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -10,6 +11,7 @@ export const kicksTable = pgTable("kicks", {
     .notNull()
     .references(() => athletesTable.id, { onDelete: "cascade" }),
   gameId: uuid("game_id").references(() => gamesTable.id, { onDelete: "set null" }),
+  practiceSessionId: uuid("practice_session_id").references(() => practiceSessionsTable.id, { onDelete: "set null" }),
   kickType: text("kick_type", {
     enum: ["field_goal", "punt", "kickoff"],
   }).notNull(),

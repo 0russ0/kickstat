@@ -31,7 +31,7 @@ const MISS_TYPES: { value: MissType; label: string }[] = [
 
 export default function FieldGoalScreen() {
   const colors = useColors();
-  const { activeAthleteId, recordKick, kickMode, activeGame } = useApp();
+  const { activeAthleteId, recordKick, kickMode, activeGame, activePracticeSession } = useApp();
 
   const [los, setLos] = useState("");
   const [outcome, setOutcome] = useState<Outcome>(null);
@@ -78,6 +78,7 @@ export default function FieldGoalScreen() {
       await recordKick({
         athleteId: activeAthleteId,
         gameId: kickMode === "game" && activeGame ? activeGame.id : null,
+        practiceSessionId: kickMode === "practice" && activePracticeSession ? activePracticeSession.id : null,
         kickType: "field_goal",
         isGameWinner: kickMode === "game" ? isGameWinner : false,
         data: {

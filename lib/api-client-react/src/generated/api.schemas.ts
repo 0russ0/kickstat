@@ -215,12 +215,32 @@ export interface KickoffData {
   returnYards?: number | null;
 }
 
+export interface PracticeSession {
+  id: string;
+  athleteId: string;
+  date: string;
+  notes?: string | null;
+  createdAt: string;
+}
+
+export interface CreatePracticeSessionBody {
+  athleteId: string;
+  date: string;
+  notes?: string | null;
+}
+
+export interface UpdatePracticeSessionBody {
+  date?: string;
+  notes?: string | null;
+}
+
 export type KickData = { [key: string]: unknown };
 
 export interface Kick {
   id: string;
   athleteId: string;
   gameId?: string | null;
+  practiceSessionId?: string | null;
   kickType: KickType;
   data: KickData;
   isGameWinner: boolean;
@@ -232,6 +252,7 @@ export type CreateKickBodyData = { [key: string]: unknown };
 export interface CreateKickBody {
   athleteId: string;
   gameId?: string | null;
+  practiceSessionId?: string | null;
   kickType: KickType;
   data: CreateKickBodyData;
   isGameWinner?: boolean;
@@ -272,10 +293,15 @@ export type GetGamesParams = {
   athleteId?: string;
 };
 
+export type GetPracticeSessionsParams = {
+  athleteId: string;
+};
+
 export type GetKicksParams = {
   athleteId?: string;
   kickType?: KickType;
   gameId?: string;
   practiceOnly?: boolean;
+  practiceSessionId?: string;
   limit?: number;
 };

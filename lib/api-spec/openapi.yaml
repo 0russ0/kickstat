@@ -16,6 +16,8 @@ tags:
     description: Season management
   - name: games
     description: Game management
+  - name: practice-sessions
+    description: Practice session management
   - name: kicks
     description: Kick tracking
 paths:
@@ -267,6 +269,104 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /practice-sessions:
+    get:
+      operationId: getPracticeSessions
+      tags: [practice-sessions]
+      summary: List practice sessions for an athlete
+      parameters:
+        - name: athleteId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of practice sessions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PracticeSession"
+    post:
+      operationId: createPracticeSession
+      tags: [practice-sessions]
+      summary: Create a new practice session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePracticeSessionBody"
+      responses:
+        "201":
+          description: Created practice session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PracticeSession"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /practice-sessions/{id}:
+    patch:
+      operationId: updatePracticeSession
+      tags: [practice-sessions]
+      summary: Update a practice session
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePracticeSessionBody"
+      responses:
+        "200":
+          description: Updated practice session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PracticeSession"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deletePracticeSession
+      tags: [practice-sessions]
+      summary: Delete a practice session (and dissociate its kicks)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /kicks:
     get:
       operationId: getKicks
@@ -293,6 +393,11 @@ paths:
           required: false
           schema:
             type: boolean
+        - name: practiceSessionId
+          in: query
+          required: false
+          schema:
+            type: string
         - name: limit
           in: query
           required: false
@@ -635,6 +740,49 @@ components:
         - touchback
         - hangtime
 
+    PracticeSession:
+      type: object
+      properties:
+        id:
+          type: string
+        athleteId:
+          type: string
+        date:
+          type: string
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+      required:
+        - id
+        - athleteId
+        - date
+        - createdAt
+
+    CreatePracticeSessionBody:
+      type: object
+      properties:
+        athleteId:
+          type: string
+        date:
+          type: string
+        notes:
+          type: string
+          nullable: true
+      required:
+        - athleteId
+        - date
+
+    UpdatePracticeSessionBody:
+      type: object
+      properties:
+        date:
+          type: string
+        notes:
+          type: string
+          nullable: true
+
     Kick:
       type: object
       properties:
@@ -643,6 +791,9 @@ components:
         athleteId:
           type: string
         gameId:
+          type: string
+          nullable: true
+        practiceSessionId:
           type: string
           nullable: true
         kickType:
@@ -667,6 +818,9 @@ components:
         athleteId:
           type: string
         gameId:
+          type: string
+          nullable: true
+        practiceSessionId:
           type: string
           nullable: true
         kickType:

@@ -22,17 +22,21 @@ import type {
   CreateAthleteBody,
   CreateGameBody,
   CreateKickBody,
+  CreatePracticeSessionBody,
   CreateSeasonBody,
   DeleteResponse,
   ErrorResponse,
   Game,
   GetGamesParams,
   GetKicksParams,
+  GetPracticeSessionsParams,
   GetSeasonsParams,
   HealthStatus,
   Kick,
+  PracticeSession,
   Season,
   UpdateGameBody,
+  UpdatePracticeSessionBody,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -977,6 +981,365 @@ export const useDeleteGame = <
   TContext
 > => {
   return useMutation(getDeleteGameMutationOptions(options));
+};
+
+/**
+ * @summary List practice sessions for an athlete
+ */
+export const getGetPracticeSessionsUrl = (
+  params: GetPracticeSessionsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/practice-sessions?${stringifiedParams}`
+    : `/api/practice-sessions`;
+};
+
+export const getPracticeSessions = async (
+  params: GetPracticeSessionsParams,
+  options?: RequestInit,
+): Promise<PracticeSession[]> => {
+  return customFetch<PracticeSession[]>(getGetPracticeSessionsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetPracticeSessionsQueryKey = (
+  params?: GetPracticeSessionsParams,
+) => {
+  return [`/api/practice-sessions`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetPracticeSessionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPracticeSessions>>,
+  TError = ErrorType<unknown>,
+>(
+  params: GetPracticeSessionsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getPracticeSessions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetPracticeSessionsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getPracticeSessions>>
+  > = ({ signal }) =>
+    getPracticeSessions(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getPracticeSessions>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetPracticeSessionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPracticeSessions>>
+>;
+export type GetPracticeSessionsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List practice sessions for an athlete
+ */
+
+export function useGetPracticeSessions<
+  TData = Awaited<ReturnType<typeof getPracticeSessions>>,
+  TError = ErrorType<unknown>,
+>(
+  params: GetPracticeSessionsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getPracticeSessions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetPracticeSessionsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a new practice session
+ */
+export const getCreatePracticeSessionUrl = () => {
+  return `/api/practice-sessions`;
+};
+
+export const createPracticeSession = async (
+  createPracticeSessionBody: CreatePracticeSessionBody,
+  options?: RequestInit,
+): Promise<PracticeSession> => {
+  return customFetch<PracticeSession>(getCreatePracticeSessionUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createPracticeSessionBody),
+  });
+};
+
+export const getCreatePracticeSessionMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createPracticeSession>>,
+    TError,
+    { data: BodyType<CreatePracticeSessionBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createPracticeSession>>,
+  TError,
+  { data: BodyType<CreatePracticeSessionBody> },
+  TContext
+> => {
+  const mutationKey = ["createPracticeSession"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createPracticeSession>>,
+    { data: BodyType<CreatePracticeSessionBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createPracticeSession(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreatePracticeSessionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createPracticeSession>>
+>;
+export type CreatePracticeSessionMutationBody =
+  BodyType<CreatePracticeSessionBody>;
+export type CreatePracticeSessionMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Create a new practice session
+ */
+export const useCreatePracticeSession = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createPracticeSession>>,
+    TError,
+    { data: BodyType<CreatePracticeSessionBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createPracticeSession>>,
+  TError,
+  { data: BodyType<CreatePracticeSessionBody> },
+  TContext
+> => {
+  return useMutation(getCreatePracticeSessionMutationOptions(options));
+};
+
+/**
+ * @summary Update a practice session
+ */
+export const getUpdatePracticeSessionUrl = (id: string) => {
+  return `/api/practice-sessions/${id}`;
+};
+
+export const updatePracticeSession = async (
+  id: string,
+  updatePracticeSessionBody: UpdatePracticeSessionBody,
+  options?: RequestInit,
+): Promise<PracticeSession> => {
+  return customFetch<PracticeSession>(getUpdatePracticeSessionUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updatePracticeSessionBody),
+  });
+};
+
+export const getUpdatePracticeSessionMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updatePracticeSession>>,
+    TError,
+    { id: string; data: BodyType<UpdatePracticeSessionBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updatePracticeSession>>,
+  TError,
+  { id: string; data: BodyType<UpdatePracticeSessionBody> },
+  TContext
+> => {
+  const mutationKey = ["updatePracticeSession"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updatePracticeSession>>,
+    { id: string; data: BodyType<UpdatePracticeSessionBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updatePracticeSession(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdatePracticeSessionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updatePracticeSession>>
+>;
+export type UpdatePracticeSessionMutationBody =
+  BodyType<UpdatePracticeSessionBody>;
+export type UpdatePracticeSessionMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Update a practice session
+ */
+export const useUpdatePracticeSession = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updatePracticeSession>>,
+    TError,
+    { id: string; data: BodyType<UpdatePracticeSessionBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updatePracticeSession>>,
+  TError,
+  { id: string; data: BodyType<UpdatePracticeSessionBody> },
+  TContext
+> => {
+  return useMutation(getUpdatePracticeSessionMutationOptions(options));
+};
+
+/**
+ * @summary Delete a practice session (and dissociate its kicks)
+ */
+export const getDeletePracticeSessionUrl = (id: string) => {
+  return `/api/practice-sessions/${id}`;
+};
+
+export const deletePracticeSession = async (
+  id: string,
+  options?: RequestInit,
+): Promise<DeleteResponse> => {
+  return customFetch<DeleteResponse>(getDeletePracticeSessionUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeletePracticeSessionMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deletePracticeSession>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deletePracticeSession>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["deletePracticeSession"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deletePracticeSession>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deletePracticeSession(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeletePracticeSessionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deletePracticeSession>>
+>;
+
+export type DeletePracticeSessionMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Delete a practice session (and dissociate its kicks)
+ */
+export const useDeletePracticeSession = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deletePracticeSession>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deletePracticeSession>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getDeletePracticeSessionMutationOptions(options));
 };
 
 /**

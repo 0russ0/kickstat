@@ -51,7 +51,7 @@ function calcDistance(
 
 export default function PuntScreen() {
   const colors = useColors();
-  const { activeAthleteId, recordKick, kickMode, activeGame } = useApp();
+  const { activeAthleteId, recordKick, kickMode, activeGame, activePracticeSession } = useApp();
   const stopwatch = useStopwatch();
 
   const [snapYard, setSnapYard] = useState("");
@@ -135,6 +135,7 @@ export default function PuntScreen() {
       await recordKick({
         athleteId: activeAthleteId,
         gameId: kickMode === "game" && activeGame ? activeGame.id : null,
+        practiceSessionId: kickMode === "practice" && activePracticeSession ? activePracticeSession.id : null,
         kickType: "punt",
         data: {
           snapYard: snapN,

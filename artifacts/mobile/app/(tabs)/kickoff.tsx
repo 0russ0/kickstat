@@ -24,7 +24,7 @@ type TouchbackType = "endzone" | "out_of_endzone";
 
 export default function KickoffScreen() {
   const colors = useColors();
-  const { activeAthleteId, recordKick, kickMode, activeGame } = useApp();
+  const { activeAthleteId, recordKick, kickMode, activeGame, activePracticeSession } = useApp();
   const stopwatch = useStopwatch();
 
   const [touchback, setTouchback] = useState<boolean | null>(null);
@@ -53,6 +53,7 @@ export default function KickoffScreen() {
       await recordKick({
         athleteId: activeAthleteId,
         gameId: kickMode === "game" && activeGame ? activeGame.id : null,
+        practiceSessionId: kickMode === "practice" && activePracticeSession ? activePracticeSession.id : null,
         kickType: "kickoff",
         data: {
           touchback,
