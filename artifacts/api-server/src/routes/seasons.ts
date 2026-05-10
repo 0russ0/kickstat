@@ -37,18 +37,20 @@ router.patch("/seasons/:id", async (req, res) => {
     return;
   }
   try {
-    const [updated] = await db
+    const rows = await db
       .update(seasonsTable)
       .set(parsed.data)
       .where(eq(seasonsTable.id, id))
       .returning();
+    const updated = rows[0];
     if (!updated) {
       res.status(404).json({ error: "Season not found" });
       return;
     }
     res.json(updated);
-  } catch {
-    res.status(404).json({ error: "Season not found" });
+  } catch (err) {
+    req.log.error({ err }, "Failed to update season");
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 

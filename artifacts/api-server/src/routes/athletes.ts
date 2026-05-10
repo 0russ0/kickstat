@@ -53,18 +53,20 @@ router.patch("/athletes/:id", async (req, res) => {
     return;
   }
   try {
-    const [updated] = await db
+    const rows = await db
       .update(athletesTable)
       .set({ name: parsed.data.name })
       .where(eq(athletesTable.id, id))
       .returning();
+    const updated = rows[0];
     if (!updated) {
       res.status(404).json({ error: "Athlete not found" });
       return;
     }
     res.json({ id: updated.id, name: updated.name, createdAt: updated.createdAt });
-  } catch {
-    res.status(404).json({ error: "Athlete not found" });
+  } catch (err) {
+    req.log.error({ err }, "Failed to update athlete");
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
