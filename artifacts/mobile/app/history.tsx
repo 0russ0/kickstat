@@ -342,7 +342,9 @@ function GamePicker({
   const selected = games.find((g) => g.id === selectedId);
   const label = selected
     ? `${selected.homeAway === "home" ? "vs" : "@"} ${selected.opponent ?? "TBD"}  ·  ${formatGameDate(selected.date)}`
-    : "All Games";
+    : games.length === 0
+    ? "No games recorded yet"
+    : "Select a game…";
 
   const s = StyleSheet.create({
     trigger: {
@@ -400,41 +402,42 @@ function GamePicker({
           <Pressable style={s.sheet} onPress={(e) => e.stopPropagation()}>
             <View style={s.sheetHandle} />
             <Text style={s.sheetTitle}>Select Game</Text>
-            <FlatList
-              data={[null, ...games] as (Game | null)[]}
-              keyExtractor={(item) => item?.id ?? "__all__"}
-              contentContainerStyle={{ paddingBottom: 40 }}
-              renderItem={({ item: game, index }) => {
-                const isAll = game === null;
-                const isSelected = isAll ? selectedId === null : selectedId === game.id;
-                const sName = !isAll && game.seasonId ? (seasonMap[game.seasonId] ?? "") : "";
-                return (
-                  <Pressable
-                    style={[s.item, index > 0 && s.itemBorder]}
-                    onPress={() => { onSelect(isAll ? null : game.id); setOpen(false); }}
-                  >
-                    <View style={s.itemMain}>
-                      {isAll ? (
-                        <Text style={[s.itemTitle, { color: colors.foreground }]}>All Games</Text>
-                      ) : (
-                        <>
-                          <Text style={[s.itemTitle, { color: colors.foreground }]}>
-                            {game.homeAway === "home" ? "vs" : "@"} {game.opponent ?? "TBD"}
-                            {game.isPlayoff ? "  🏆" : ""}
-                          </Text>
-                          <Text style={s.itemMeta}>
-                            {formatGameDate(game.date)}{sName ? `  ·  ${sName}` : ""}
-                          </Text>
-                        </>
-                      )}
-                    </View>
-                    <View style={s.checkWrap}>
-                      {isSelected && <Feather name="check" size={16} color={colors.primary} />}
-                    </View>
-                  </Pressable>
-                );
-              }}
-            />
+            {games.length === 0 ? (
+              <View style={{ padding: 24, alignItems: "center" }}>
+                <Text style={{ color: colors.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 14, textAlign: "center" }}>
+                  No games yet.{"\n"}Add games in Games &amp; Seasons.
+                </Text>
+              </View>
+            ) : (
+              <FlatList
+                data={games}
+                keyExtractor={(item) => item.id}
+                contentContainerStyle={{ paddingBottom: 40 }}
+                renderItem={({ item: game, index }) => {
+                  const isSelected = selectedId === game.id;
+                  const sName = game.seasonId ? (seasonMap[game.seasonId] ?? "") : "";
+                  return (
+                    <Pressable
+                      style={[s.item, index > 0 && s.itemBorder]}
+                      onPress={() => { onSelect(game.id); setOpen(false); }}
+                    >
+                      <View style={s.itemMain}>
+                        <Text style={[s.itemTitle, { color: colors.foreground }]}>
+                          {game.homeAway === "home" ? "vs" : "@"} {game.opponent ?? "TBD"}
+                          {game.isPlayoff ? "  🏆" : ""}
+                        </Text>
+                        <Text style={s.itemMeta}>
+                          {formatGameDate(game.date)}{sName ? `  ·  ${sName}` : ""}
+                        </Text>
+                      </View>
+                      <View style={s.checkWrap}>
+                        {isSelected && <Feather name="check" size={16} color={colors.primary} />}
+                      </View>
+                    </Pressable>
+                  );
+                }}
+              />
+            )}
           </Pressable>
         </Pressable>
       </Modal>
@@ -632,18 +635,41 @@ export default function HistoryScreen() {
             />
           )}
 
-          {/* Stats */}
-          <Text style={s.sectionHeader}>{label}</Text>
-          <View style={s.statsGroup}>
-            <FGStatsCard stats={stats.fg} />
-            <PuntStatsCard stats={stats.punt} />
-            <KOStatsCard stats={stats.ko} />
-          </View>
+          {/* Game period: empty state until a game is chosen */}
+          {period === "game" && !selectedGameId && (
+            <View style={{
+              backgroundColor: colors.card,
+              borderRadius: 14,
+              borderWidth: 1,
+              borderColor: colors.border,
+              padding: 32,
+              alignItems: "center",
+              gap: 10,
+            }}>
+              <Feather name="calendar" size={32} color={colors.mutedForeground} />
+              <Text style={{ fontSize: 15, fontFamily: "Inter_600SemiBold", color: colors.foreground }}>
+                Select a game
+              </Text>
+              <Text style={{ fontSize: 13, fontFamily: "Inter_400Regular", color: colors.mutedForeground, textAlign: "center" }}>
+                Use the dropdown above to pick a game and see its kick summary.
+              </Text>
+            </View>
+          )}
 
-          {/* Recent kicks */}
-          <KickHistoryList
-            gameId={period === "game" && selectedGameId ? selectedGameId : undefined}
-          />
+          {/* Stats — shown for Season/Career always, and for Game only once a game is selected */}
+          {(period !== "game" || selectedGameId != null) && (
+            <>
+              <Text style={s.sectionHeader}>{label}</Text>
+              <View style={s.statsGroup}>
+                <FGStatsCard stats={stats.fg} />
+                <PuntStatsCard stats={stats.punt} />
+                <KOStatsCard stats={stats.ko} />
+              </View>
+              <KickHistoryList
+                gameId={period === "game" && selectedGameId ? selectedGameId : undefined}
+              />
+            </>
+          )}
 
         </ScrollView>
       </View>
