@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import {
   Alert,
+  Image,
   Modal,
   Platform,
   Pressable,
@@ -158,6 +159,13 @@ export function AthleteBar() {
 
   return (
     <View style={styles.container}>
+      <View style={{ alignItems: "center", backgroundColor: colors.background }}>
+        <Image
+          source={require("../assets/images/logo_Final.png")}
+          style={{ width: 200, height: 200 }}
+          resizeMode="contain"
+        />
+      </View>
       <View style={styles.headerRow}>
         <Text style={styles.title}>Athlete</Text>
         <CloudSyncIndicator />
