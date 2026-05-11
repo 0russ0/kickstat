@@ -3,6 +3,7 @@ import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
+import { useTabBarHeight } from "@/hooks/useTabBarHeight";
 import { useTheme } from "@/context/ThemeContext";
 import { GamesScreenContent } from "@/components/GamesScreenContent";
 import { HistoryScreenContent } from "@/components/HistoryScreenContent";
@@ -62,6 +63,7 @@ const rowStyles = StyleSheet.create({
 
 export default function MoreScreen() {
   const colors = useColors();
+  const tabBarHeight = useTabBarHeight();
   const { resolvedTheme, toggleTheme } = useTheme();
   const insets = useSafeAreaInsets();
   const topPadding = Platform.OS === "web" ? 67 : insets.top;
@@ -85,7 +87,7 @@ export default function MoreScreen() {
       fontFamily: "Inter_700Bold",
       color: colors.foreground,
     },
-    content: { padding: 16, gap: 24, paddingBottom: 120 },
+    content: { padding: 16, gap: 24, paddingBottom: tabBarHeight },
     sectionLabel: {
       fontSize: 11,
       fontFamily: "Inter_600SemiBold",

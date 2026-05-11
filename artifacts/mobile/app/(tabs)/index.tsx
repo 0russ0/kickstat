@@ -18,6 +18,7 @@ import { KickTypeToggle } from "@/components/KickTypeToggle";
 import { ModeSelector } from "@/components/ModeSelector";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
+import { useTabBarHeight } from "@/hooks/useTabBarHeight";
 import { SwipeableScreen } from "@/components/SwipeableScreen";
 
 type Outcome = "made" | "missed" | null;
@@ -32,6 +33,7 @@ const MISS_TYPES: { value: MissType; label: string }[] = [
 
 export default function FieldGoalScreen() {
   const colors = useColors();
+  const tabBarHeight = useTabBarHeight();
   const { activeAthleteId, recordKick, kickMode, activeGame, activePracticeSession } = useApp();
 
   const [los, setLos] = useState("");
@@ -138,7 +140,7 @@ export default function FieldGoalScreen() {
   const s = StyleSheet.create({
     screen: { flex: 1, backgroundColor: colors.background },
     scroll: { flex: 1 },
-    content: { padding: 16, gap: 16, paddingBottom: 40 },
+    content: { padding: 16, gap: 16, paddingBottom: tabBarHeight },
     card: {
       backgroundColor: colors.card,
       borderRadius: 16,

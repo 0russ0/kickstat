@@ -18,6 +18,7 @@ import { ModeSelector } from "@/components/ModeSelector";
 import { StopwatchButton } from "@/components/StopwatchButton";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
+import { useTabBarHeight } from "@/hooks/useTabBarHeight";
 import { SwipeableScreen } from "@/components/SwipeableScreen";
 import { useStopwatch } from "@/hooks/useStopwatch";
 
@@ -52,6 +53,7 @@ function calcDistance(
 
 export default function PuntScreen() {
   const colors = useColors();
+  const tabBarHeight = useTabBarHeight();
   const { activeAthleteId, recordKick, kickMode, activeGame, activePracticeSession } = useApp();
   const stopwatch = useStopwatch();
 
@@ -164,7 +166,7 @@ export default function PuntScreen() {
   const s = StyleSheet.create({
     screen: { flex: 1, backgroundColor: colors.background },
     scroll: { flex: 1 },
-    content: { padding: 16, gap: 16, paddingBottom: 40 },
+    content: { padding: 16, gap: 16, paddingBottom: tabBarHeight },
     card: {
       backgroundColor: colors.card,
       borderRadius: 16,

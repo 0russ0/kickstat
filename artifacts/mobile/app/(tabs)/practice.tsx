@@ -27,6 +27,7 @@ import { KickHistoryList } from "@/components/KickHistoryList";
 import { CalendarPicker, todayEastern, formatDate } from "@/components/CalendarPicker";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
+import { useTabBarHeight } from "@/hooks/useTabBarHeight";
 import { SwipeableScreen } from "@/components/SwipeableScreen";
 import { formatHangtime } from "@/hooks/useStopwatch";
 import type { Kick } from "@workspace/api-client-react";
@@ -255,6 +256,7 @@ function SessionCard({ session, isActive, onSetActive, onEdit, onDelete }: Sessi
 
 export default function PracticeScreen() {
   const colors = useColors();
+  const tabBarHeight = useTabBarHeight();
   const { activeAthleteId, activePracticeSession, setActivePracticeSession } = useApp();
   const queryClient = useQueryClient();
   const deleteMutation = useDeletePracticeSession();
@@ -303,7 +305,7 @@ export default function PracticeScreen() {
   const s = StyleSheet.create({
     screen: { flex: 1, backgroundColor: colors.background },
     scroll: { flex: 1 },
-    content: { padding: 16, gap: 16, paddingBottom: 40 },
+    content: { padding: 16, gap: 16, paddingBottom: tabBarHeight },
     header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
     sectionTitle: { fontSize: 12, fontFamily: "Inter_600SemiBold", color: colors.mutedForeground, letterSpacing: 1, textTransform: "uppercase" },
     newBtn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: colors.primary, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 },

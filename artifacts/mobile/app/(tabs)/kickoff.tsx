@@ -18,6 +18,7 @@ import { ModeSelector } from "@/components/ModeSelector";
 import { StopwatchButton } from "@/components/StopwatchButton";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
+import { useTabBarHeight } from "@/hooks/useTabBarHeight";
 import { SwipeableScreen } from "@/components/SwipeableScreen";
 import { useStopwatch } from "@/hooks/useStopwatch";
 
@@ -28,6 +29,7 @@ type PracticeResult = "touchback_endzone" | "touchback_ooe" | "out_of_bounds" | 
 
 export default function KickoffScreen() {
   const colors = useColors();
+  const tabBarHeight = useTabBarHeight();
   const { activeAthleteId, recordKick, kickMode, activeGame, activePracticeSession } = useApp();
   const stopwatch = useStopwatch();
 
@@ -133,7 +135,7 @@ export default function KickoffScreen() {
   const s = StyleSheet.create({
     screen: { flex: 1, backgroundColor: colors.background },
     scroll: { flex: 1 },
-    content: { padding: 16, gap: 16, paddingBottom: 120 },
+    content: { padding: 16, gap: 16, paddingBottom: tabBarHeight },
     card: { backgroundColor: colors.card, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.border, gap: 16 },
     cardTitle: { fontSize: 12, fontFamily: "Inter_600SemiBold", color: colors.mutedForeground, letterSpacing: 1, textTransform: "uppercase" },
     input: { backgroundColor: colors.input, borderRadius: 10, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 14, paddingVertical: 12, fontSize: 22, fontFamily: "Inter_700Bold", color: colors.foreground, textAlign: "center" },
