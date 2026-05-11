@@ -162,7 +162,7 @@ export function AthleteBar() {
       <View style={{ alignItems: "center", backgroundColor: colors.background }}>
         <Image
           source={require("../assets/images/logo_Final.png")}
-          style={{ width: 200, height: 200 }}
+          style={{ width: 100, height: 100 }}
           resizeMode="contain"
         />
       </View>
