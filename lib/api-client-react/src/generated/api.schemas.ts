@@ -224,6 +224,7 @@ export interface KickoffData {
   hangtime: number;
   landingYard?: number | null;
   returnYards?: number | null;
+  distance?: number | null;
 }
 
 export type PatDataOutcome =

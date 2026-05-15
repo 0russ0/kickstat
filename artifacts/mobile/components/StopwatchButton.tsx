@@ -56,7 +56,7 @@ export function StopwatchButton({
         >
           <Feather
             name={isRunning ? "square" : "play"}
-            size={24}
+            size={36}
             color={textColor}
           />
           <Text style={[styles.time, { color: textColor }]}>
@@ -89,15 +89,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 28,
+    paddingVertical: 24,
+    paddingHorizontal: 42,
     borderRadius: 16,
     borderWidth: 1.5,
-    minWidth: 180,
+    minWidth: 270,
     justifyContent: "center",
   },
   time: {
-    fontSize: 28,
+    fontSize: 42,
     fontFamily: "Inter_700Bold",
     letterSpacing: -0.5,
   },

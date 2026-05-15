@@ -813,6 +813,9 @@ components:
         returnYards:
           type: number
           nullable: true
+        distance:
+          type: number
+          nullable: true
       required:
         - touchback
         - hangtime

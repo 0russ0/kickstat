@@ -37,8 +37,8 @@ function pct(a: number, b: number) {
   return `${Math.round((a / b) * 100)}%`;
 }
 
-function avg(vals: number[]): number | null {
-  return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+function avg(nums: number[]): number | null {
+  return nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : null;
 }
 
 function computeStats(kicks: Kick[]) {
@@ -47,26 +47,50 @@ function computeStats(kicks: Kick[]) {
   const ko = kicks.filter((k) => k.kickType === "kickoff");
 
   const fgMade = fg.filter((k) => (k.data as Record<string, unknown>)["outcome"] === "made").length;
+  const fgDists = fg
+    .map((k) => (k.data as Record<string, unknown>)["distance"] as number | null)
+    .filter((d): d is number => d != null && d > 0);
 
   const puntDists = punt
     .map((k) => (k.data as Record<string, unknown>)["distance"] as number | null)
     .filter((d): d is number => d != null && d > 0);
+  const puntHangtimes = punt
+    .map((k) => (k.data as Record<string, unknown>)["hangtime"] as number | null)
+    .filter((h): h is number => h != null && h > 0);
 
   const koTB = ko.filter((k) => (k.data as Record<string, unknown>)["touchback"] === true).length;
-
+  const koDists = ko
+    .map((k) => (k.data as Record<string, unknown>)["distance"] as number | null)
+    .filter((d): d is number => d != null && d > 0);
   const koHangtimes = ko
     .map((k) => (k.data as Record<string, unknown>)["hangtime"] as number | null)
     .filter((h): h is number => h != null && h > 0);
 
-  const koLandingYards = ko
-    .map((k) => (k.data as Record<string, unknown>)["landingYard"] as number | null)
-    .filter((y): y is number => y != null && y > 0);
+  const allHangtimes = [...puntHangtimes, ...koHangtimes];
+  const allDists = [...puntDists, ...koDists];
 
   return {
     total: kicks.length,
-    fg: { total: fg.length, made: fgMade },
-    punt: { total: punt.length, avgDist: avg(puntDists) },
-    ko: { total: ko.length, touchbacks: koTB, avgHangtime: avg(koHangtimes), avgLandingYard: avg(koLandingYards) },
+    fg: {
+      total: fg.length,
+      made: fgMade,
+      avgDist: avg(fgDists),
+    },
+    punt: {
+      total: punt.length,
+      avgDist: avg(puntDists),
+      avgHangtime: avg(puntHangtimes),
+      longest: puntDists.length ? Math.max(...puntDists) : null,
+    },
+    ko: {
+      total: ko.length,
+      touchbacks: koTB,
+      avgDist: avg(koDists),
+      avgHangtime: avg(koHangtimes),
+      longest: koDists.length ? Math.max(...koDists) : null,
+    },
+    longestHangtime: allHangtimes.length ? Math.max(...allHangtimes) : null,
+    longestDist: allDists.length ? Math.max(...allDists) : null,
   };
 }
 
@@ -238,24 +262,43 @@ function SessionCard({ session, isActive, onSetActive, onEdit, onDelete }: Sessi
         <View style={s.statsRow}>
           {stats.fg.total > 0 && (
             <View style={s.statChip}>
-              <Text style={s.statChipText}>FG {stats.fg.made}/{stats.fg.total} ({pct(stats.fg.made, stats.fg.total)})</Text>
+              <Text style={s.statChipText}>
+                FG {stats.fg.made}/{stats.fg.total} ({pct(stats.fg.made, stats.fg.total)})
+                {stats.fg.avgDist != null ? ` · avg ${Math.round(stats.fg.avgDist)}yd` : ""}
+              </Text>
             </View>
           )}
           {stats.punt.total > 0 && (
             <View style={s.statChip}>
               <Text style={s.statChipText}>
                 {stats.punt.total} punt{stats.punt.total !== 1 ? "s" : ""}
-                {stats.punt.avgDist != null ? ` · ${Math.round(stats.punt.avgDist)}yd avg` : ""}
+                {stats.punt.avgDist != null ? ` · avg ${Math.round(stats.punt.avgDist)}yd` : ""}
+                {stats.punt.avgHangtime != null ? ` · avg ${formatHangtime(stats.punt.avgHangtime)}` : ""}
               </Text>
+            </View>
+          )}
+          {stats.punt.longest != null && (
+            <View style={s.statChip}>
+              <Text style={s.statChipText}>Punt best {Math.round(stats.punt.longest)}yd</Text>
             </View>
           )}
           {stats.ko.total > 0 && (
             <View style={s.statChip}>
               <Text style={s.statChipText}>
                 KO {stats.ko.touchbacks}/{stats.ko.total} TB
-                {stats.ko.avgLandingYard != null ? ` · ${Math.round(stats.ko.avgLandingYard)}yd avg` : ""}
-                {stats.ko.avgHangtime != null ? ` · ${(stats.ko.avgHangtime / 1000).toFixed(1)}s hang` : ""}
+                {stats.ko.avgDist != null ? ` · avg ${Math.round(stats.ko.avgDist)}yd` : ""}
+                {stats.ko.avgHangtime != null ? ` · avg ${formatHangtime(stats.ko.avgHangtime)}` : ""}
               </Text>
+            </View>
+          )}
+          {stats.ko.longest != null && (
+            <View style={s.statChip}>
+              <Text style={s.statChipText}>KO best {Math.round(stats.ko.longest)}yd</Text>
+            </View>
+          )}
+          {stats.longestHangtime != null && (
+            <View style={s.statChip}>
+              <Text style={s.statChipText}>Best hangtime {formatHangtime(stats.longestHangtime)}</Text>
             </View>
           )}
         </View>

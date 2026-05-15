@@ -24,8 +24,14 @@ import { useStopwatch } from "@/hooks/useStopwatch";
 
 type TouchbackType = "endzone" | "out_of_endzone";
 
-// practice result: touchback_endzone | touchback_ooe | out_of_bounds | landed (landing yard)
-type PracticeResult = "touchback_endzone" | "touchback_ooe" | "out_of_bounds" | null;
+// Compute kickoff distance from opponent's yard line (user input) to 35-yd kickoff spot
+// User enters the opponent's yard line (e.g. 20 = opponent 20).
+// Absolute field position from kicking team's end zone = 100 - entered.
+// Distance = absolute - 35.
+function computeKickoffDistance(opponentYardLine: number): number {
+  const absolute = 100 - opponentYardLine;
+  return absolute - 35;
+}
 
 export default function KickoffScreen() {
   const colors = useColors();
@@ -35,9 +41,6 @@ export default function KickoffScreen() {
 
   // --- shared ---
   const [landingYard, setLandingYard] = useState("");
-
-  // --- practice-only state ---
-  const [practiceResult, setPracticeResult] = useState<PracticeResult>(null);
 
   // --- game-only state ---
   const [touchback, setTouchback] = useState<boolean | null>(null);
@@ -50,7 +53,6 @@ export default function KickoffScreen() {
 
   const reset = () => {
     setLandingYard("");
-    setPracticeResult(null);
     setTouchback(null);
     setTouchbackType(null);
     setOutOfBounds(false);
@@ -69,12 +71,8 @@ export default function KickoffScreen() {
     }
 
     if (isPractice) {
-      if (practiceResult === null && !landingYard) {
-        Alert.alert("Missing Info", "Select a result or enter the landing yard line.");
-        return;
-      }
-      if (practiceResult === "out_of_bounds" && !landingYard) {
-        Alert.alert("Missing Info", "Enter the out-of-bounds yard line.");
+      if (!landingYard) {
+        Alert.alert("Missing Info", "Enter the landing yard line.");
         return;
       }
     } else {
@@ -92,22 +90,26 @@ export default function KickoffScreen() {
     const finalHangtime = stopwatch.isRunning ? stopwatch.stop() : stopwatch.elapsed;
     try {
       if (isPractice) {
-        const isTouchback = practiceResult === "touchback_endzone" || practiceResult === "touchback_ooe";
+        const landingYardNum = Number(landingYard);
+        const distance = computeKickoffDistance(landingYardNum);
         await recordKick({
           athleteId: activeAthleteId,
           gameId: null,
           practiceSessionId: activePracticeSession ? activePracticeSession.id : null,
           kickType: "kickoff",
           data: {
-            touchback: isTouchback,
-            touchbackType: practiceResult === "touchback_endzone" ? "endzone" : practiceResult === "touchback_ooe" ? "out_of_endzone" : null,
-            outOfBounds: practiceResult === "out_of_bounds" ? true : null,
+            touchback: false,
+            touchbackType: null,
+            outOfBounds: null,
             hangtime: finalHangtime,
-            landingYard: landingYard ? Number(landingYard) : null,
+            landingYard: landingYardNum,
             returnYards: null,
+            distance,
           },
         });
       } else {
+        const landingYardNum = landingYard ? Number(landingYard) : null;
+        const distance = landingYardNum != null ? computeKickoffDistance(landingYardNum) : null;
         await recordKick({
           athleteId: activeAthleteId,
           gameId: activeGame ? activeGame.id : null,
@@ -118,8 +120,9 @@ export default function KickoffScreen() {
             touchbackType: touchback ? touchbackType : null,
             outOfBounds: outOfBounds ? true : null,
             hangtime: finalHangtime,
-            landingYard: landingYard ? Number(landingYard) : null,
+            landingYard: landingYardNum,
             returnYards: !touchback && !outOfBounds && returnYards ? Number(returnYards) : null,
+            distance,
           },
         });
       }
@@ -145,19 +148,10 @@ export default function KickoffScreen() {
     tbTypeRow: { flexDirection: "row", gap: 10 },
     tbTypeBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: "center", borderWidth: 1.5 },
     tbTypeBtnText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
-    practiceRow: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
-    practiceBtn: { flex: 1, minWidth: "45%", paddingVertical: 14, borderRadius: 12, alignItems: "center", borderWidth: 1.5 },
-    practiceBtnText: { fontSize: 14, fontFamily: "Inter_600SemiBold", textAlign: "center" },
     stopwatchCenter: { alignItems: "center" },
     submitBtn: { paddingVertical: 16, borderRadius: 14, alignItems: "center" },
     submitText: { fontSize: 16, fontFamily: "Inter_700Bold", letterSpacing: 0.3 },
   });
-
-  const PRACTICE_RESULTS: { value: PracticeResult; label: string; color: string }[] = [
-    { value: "touchback_endzone", label: "Touchback\nEndzone", color: colors.success },
-    { value: "touchback_ooe", label: "Touchback\nOut of Endzone", color: colors.success },
-    { value: "out_of_bounds", label: "Out of\nBounds", color: colors.primary },
-  ];
 
   return (
   <SwipeableScreen tabIndex={2}>
@@ -176,40 +170,18 @@ export default function KickoffScreen() {
 
             {/* ── PRACTICE MODE ── */}
             {isPractice && (
-              <>
-                <View>
-                  <Text style={[s.cardTitle, { marginBottom: 10 }]}>Result</Text>
-                  <View style={s.practiceRow}>
-                    {PRACTICE_RESULTS.map((r) => {
-                      const active = practiceResult === r.value;
-                      return (
-                        <Pressable
-                          key={r.value!}
-                          style={[s.practiceBtn, { backgroundColor: active ? r.color : colors.secondary, borderColor: active ? r.color : colors.border }]}
-                          onPress={() => setPracticeResult(active ? null : r.value)}
-                        >
-                          <Text style={[s.practiceBtnText, { color: active ? "#fff" : colors.mutedForeground }]}>{r.label}</Text>
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-                </View>
-
-                <View>
-                  <Text style={[s.cardTitle, { marginBottom: 6 }]}>
-                    {practiceResult === "out_of_bounds" ? "Out-of-Bounds Yard Line" : "Landing Yard Line (optional)"}
-                  </Text>
-                  <TextInput
-                    style={s.input}
-                    value={landingYard}
-                    onChangeText={setLandingYard}
-                    placeholder="—"
-                    placeholderTextColor={colors.mutedForeground}
-                    keyboardType="numeric"
-                    maxLength={3}
-                  />
-                </View>
-              </>
+              <View>
+                <Text style={[s.cardTitle, { marginBottom: 6 }]}>Landing Yard Line</Text>
+                <TextInput
+                  style={s.input}
+                  value={landingYard}
+                  onChangeText={setLandingYard}
+                  placeholder="—"
+                  placeholderTextColor={colors.mutedForeground}
+                  keyboardType="numeric"
+                  maxLength={3}
+                />
+              </View>
             )}
 
             {/* ── GAME MODE ── */}
