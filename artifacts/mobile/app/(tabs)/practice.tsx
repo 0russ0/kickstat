@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from "react";
 import {
   Alert,
-  FlatList,
   Modal,
   Pressable,
   ScrollView,
@@ -48,7 +47,7 @@ function computeStats(kicks: Kick[]) {
 
   const fgMade = fg.filter((k) => (k.data as Record<string, unknown>)["outcome"] === "made").length;
   const fgDists = fg
-    .map((k) => (k.data as Record<string, unknown>)["distance"] as number | null)
+    .map((k) => (k.data as Record<string, unknown>)["totalDistance"] as number | null)
     .filter((d): d is number => d != null && d > 0);
 
   const puntDists = punt
@@ -66,7 +65,6 @@ function computeStats(kicks: Kick[]) {
     .map((k) => (k.data as Record<string, unknown>)["hangtime"] as number | null)
     .filter((h): h is number => h != null && h > 0);
 
-  const allHangtimes = [...puntHangtimes, ...koHangtimes];
   const allDists = [...puntDists, ...koDists];
 
   return {
@@ -75,12 +73,14 @@ function computeStats(kicks: Kick[]) {
       total: fg.length,
       made: fgMade,
       avgDist: avg(fgDists),
+      longest: fgDists.length ? Math.max(...fgDists) : null,
     },
     punt: {
       total: punt.length,
       avgDist: avg(puntDists),
       avgHangtime: avg(puntHangtimes),
       longest: puntDists.length ? Math.max(...puntDists) : null,
+      longestHangtime: puntHangtimes.length ? Math.max(...puntHangtimes) : null,
     },
     ko: {
       total: ko.length,
@@ -89,7 +89,6 @@ function computeStats(kicks: Kick[]) {
       avgHangtime: avg(koHangtimes),
       longest: koDists.length ? Math.max(...koDists) : null,
     },
-    longestHangtime: allHangtimes.length ? Math.max(...allHangtimes) : null,
     longestDist: allDists.length ? Math.max(...allDists) : null,
   };
 }
@@ -106,6 +105,7 @@ interface SessionModalProps {
 function SessionModal({ visible, initial, athleteId, onClose }: SessionModalProps) {
   const colors = useColors();
   const queryClient = useQueryClient();
+  const { setActivePracticeSession } = useApp();
   const createMutation = useCreatePracticeSession();
   const updateMutation = useUpdatePracticeSession();
 
@@ -126,7 +126,8 @@ function SessionModal({ visible, initial, athleteId, onClose }: SessionModalProp
       if (initial) {
         await updateMutation.mutateAsync({ id: initial.id, data: { date, notes: notes || null } });
       } else {
-        await createMutation.mutateAsync({ data: { athleteId, date, notes: notes || null } });
+        const created = await createMutation.mutateAsync({ data: { athleteId, date, notes: notes || null } });
+        setActivePracticeSession(created);
       }
       queryClient.invalidateQueries({ queryKey: getGetPracticeSessionsQueryKey() });
       onClose();
@@ -201,12 +202,11 @@ function SessionModal({ visible, initial, athleteId, onClose }: SessionModalProp
 interface SessionCardProps {
   session: PracticeSession;
   isActive: boolean;
-  onSetActive: () => void;
   onEdit: () => void;
   onDelete: () => void;
 }
 
-function SessionCard({ session, isActive, onSetActive, onEdit, onDelete }: SessionCardProps) {
+function SessionCard({ session, isActive, onEdit, onDelete }: SessionCardProps) {
   const colors = useColors();
   const { activeAthleteId } = useApp();
   const [expanded, setExpanded] = useState(false);
@@ -234,8 +234,6 @@ function SessionCard({ session, isActive, onSetActive, onEdit, onDelete }: Sessi
     expandBtn: { borderTopWidth: 1, borderColor: colors.border, padding: 10, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 },
     expandBtnText: { fontSize: 12, fontFamily: "Inter_600SemiBold", color: colors.mutedForeground },
     kicksContainer: { borderTopWidth: 1, borderColor: colors.border, padding: 12 },
-    activeBtn: { marginHorizontal: 14, marginBottom: 12, padding: 10, borderRadius: 10, alignItems: "center", borderWidth: 1, borderColor: isActive ? colors.primary : colors.border, backgroundColor: isActive ? colors.primary + "22" : "transparent" },
-    activeBtnText: { fontSize: 13, fontFamily: "Inter_600SemiBold", color: isActive ? colors.primary : colors.mutedForeground },
   });
 
   return (
@@ -268,6 +266,11 @@ function SessionCard({ session, isActive, onSetActive, onEdit, onDelete }: Sessi
               </Text>
             </View>
           )}
+          {stats.fg.longest != null && (
+            <View style={s.statChip}>
+              <Text style={s.statChipText}>FG long {Math.round(stats.fg.longest)}yd</Text>
+            </View>
+          )}
           {stats.punt.total > 0 && (
             <View style={s.statChip}>
               <Text style={s.statChipText}>
@@ -296,17 +299,13 @@ function SessionCard({ session, isActive, onSetActive, onEdit, onDelete }: Sessi
               <Text style={s.statChipText}>KO best {Math.round(stats.ko.longest)}yd</Text>
             </View>
           )}
-          {stats.longestHangtime != null && (
+          {stats.punt.longestHangtime != null && (
             <View style={s.statChip}>
-              <Text style={s.statChipText}>Best hangtime {formatHangtime(stats.longestHangtime)}</Text>
+              <Text style={s.statChipText}>Best punt hang time {formatHangtime(stats.punt.longestHangtime)}</Text>
             </View>
           )}
         </View>
       )}
-
-      <Pressable style={s.activeBtn} onPress={onSetActive}>
-        <Text style={s.activeBtnText}>{isActive ? "✓ Active Session (recording here)" : "Set as Active Session"}</Text>
-      </Pressable>
 
       <Pressable style={s.expandBtn} onPress={() => setExpanded(!expanded)}>
         <Feather name={expanded ? "chevron-up" : "chevron-down"} size={14} color={colors.mutedForeground} />
@@ -362,14 +361,6 @@ export default function PracticeScreen() {
         },
       ],
     );
-  };
-
-  const handleSetActive = (session: PracticeSession) => {
-    if (activePracticeSession?.id === session.id) {
-      setActivePracticeSession(null);
-    } else {
-      setActivePracticeSession(session);
-    }
   };
 
   const s = StyleSheet.create({
@@ -440,20 +431,17 @@ export default function PracticeScreen() {
             </Pressable>
           </View>
         ) : (
-          <FlatList
-            data={sessions}
-            keyExtractor={(s) => s.id}
-            scrollEnabled={false}
-            renderItem={({ item }) => (
+          <View>
+            {sessions.map((item) => (
               <SessionCard
+                key={item.id}
                 session={item}
                 isActive={activePracticeSession?.id === item.id}
-                onSetActive={() => handleSetActive(item)}
                 onEdit={() => setEditingSession(item)}
                 onDelete={() => handleDelete(item)}
               />
-            )}
-          />
+            ))}
+          </View>
         )}
       </ScrollView>
 
