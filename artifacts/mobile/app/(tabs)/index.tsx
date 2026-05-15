@@ -37,6 +37,7 @@ export default function FieldGoalScreen() {
   const { activeAthleteId, recordKick, kickMode, activeGame, activePracticeSession } = useApp();
 
   const [los, setLos] = useState("");
+  const [hash, setHash] = useState<"left" | "center" | "right">("center");
   const [outcome, setOutcome] = useState<Outcome>(null);
   const [missType, setMissType] = useState<MissType | null>(null);
   const [badSnap, setBadSnap] = useState(false);
@@ -48,6 +49,7 @@ export default function FieldGoalScreen() {
 
   const reset = () => {
     setLos("");
+    setHash("center");
     setOutcome(null);
     setMissType(null);
     setBadSnap(false);
@@ -122,6 +124,7 @@ export default function FieldGoalScreen() {
           outcome,
           missType: outcome === "missed" ? (missType ?? null) : null,
           badSnap,
+          hash,
         },
       });
       Haptics.notificationAsync(
@@ -168,6 +171,15 @@ export default function FieldGoalScreen() {
       color: colors.foreground,
       textAlign: "center",
     },
+    hashRow: { flexDirection: "row", gap: 8 },
+    hashBtn: {
+      flex: 1,
+      paddingVertical: 11,
+      borderRadius: 10,
+      alignItems: "center",
+      borderWidth: 1.5,
+    },
+    hashBtnText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
     outcomesRow: { flexDirection: "row", gap: 10 },
     outcomeBtn: {
       flex: 1,
@@ -255,6 +267,25 @@ export default function FieldGoalScreen() {
                 keyboardType="numeric"
                 maxLength={3}
               />
+            </View>
+
+            <View>
+              <Text style={[s.cardTitle, { marginBottom: 8 }]}>Hash</Text>
+              <View style={s.hashRow}>
+                {(["left", "center", "right"] as const).map((h) => {
+                  const active = hash === h;
+                  const label = h === "left" ? "Left Hash" : h === "center" ? "Center" : "Right Hash";
+                  return (
+                    <Pressable
+                      key={h}
+                      style={[s.hashBtn, { backgroundColor: active ? colors.primary : colors.secondary, borderColor: active ? colors.primary : colors.border }]}
+                      onPress={() => setHash(h)}
+                    >
+                      <Text style={[s.hashBtnText, { color: active ? colors.primaryForeground : colors.mutedForeground }]}>{label}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
             </View>
 
             <View>

@@ -159,11 +159,22 @@ export const FieldGoalDataMissType = {
   bad_snap: "bad_snap",
 } as const;
 
+export type FieldGoalDataHash =
+  | (typeof FieldGoalDataHash)[keyof typeof FieldGoalDataHash]
+  | null;
+
+export const FieldGoalDataHash = {
+  left: "left",
+  center: "center",
+  right: "right",
+} as const;
+
 export interface FieldGoalData {
   los: number;
   totalDistance: number;
   outcome: FieldGoalDataOutcome;
   missType?: FieldGoalDataMissType;
+  hash?: FieldGoalDataHash;
 }
 
 export type PuntDataSnapSide =

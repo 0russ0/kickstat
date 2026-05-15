@@ -35,9 +35,11 @@ function formatKickSummary(kick: Kick): string {
     const los = d["los"] as number;
     const totalDist = d["totalDistance"] as number;
     const missType = d["missType"] as string | undefined;
+    const hash = d["hash"] as string | undefined;
     const badSnapSuffix = d["badSnap"] ? " · Bad Snap" : "";
     const outcomeStr = outcome === "made" ? `✓ Made` : `✗ ${missType ?? "Missed"}`;
-    return `${outcomeStr}${badSnapSuffix} · ${totalDist}yd (LOS ${los})`;
+    const hashPrefix = hash === "left" ? "L.Hash · " : hash === "right" ? "R.Hash · " : hash === "center" ? "Ctr · " : "";
+    return `${hashPrefix}${outcomeStr}${badSnapSuffix} · ${totalDist}yd (LOS ${los})`;
   }
 
   if (kick.kickType === "punt") {

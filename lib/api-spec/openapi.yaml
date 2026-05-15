@@ -756,6 +756,10 @@ components:
           type: string
           enum: [left, right, short, blocked, bad_snap]
           nullable: true
+        hash:
+          type: string
+          enum: [left, center, right]
+          nullable: true
       required:
         - los
         - totalDistance
