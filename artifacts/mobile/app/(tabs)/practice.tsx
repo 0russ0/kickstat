@@ -37,14 +37,37 @@ function pct(a: number, b: number) {
   return `${Math.round((a / b) * 100)}%`;
 }
 
+function avg(vals: number[]): number | null {
+  return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+}
+
 function computeStats(kicks: Kick[]) {
   const fg = kicks.filter((k) => k.kickType === "field_goal");
   const punt = kicks.filter((k) => k.kickType === "punt");
   const ko = kicks.filter((k) => k.kickType === "kickoff");
+
   const fgMade = fg.filter((k) => (k.data as Record<string, unknown>)["outcome"] === "made").length;
-  const puntDists = punt.map((k) => (k.data as Record<string, unknown>)["distance"] as number | null).filter((d): d is number => d != null && d > 0);
+
+  const puntDists = punt
+    .map((k) => (k.data as Record<string, unknown>)["distance"] as number | null)
+    .filter((d): d is number => d != null && d > 0);
+
   const koTB = ko.filter((k) => (k.data as Record<string, unknown>)["touchback"] === true).length;
-  return { total: kicks.length, fg: { total: fg.length, made: fgMade }, punt: { total: punt.length, avgDist: puntDists.length ? puntDists.reduce((a, b) => a + b, 0) / puntDists.length : null }, ko: { total: ko.length, touchbacks: koTB } };
+
+  const koHangtimes = ko
+    .map((k) => (k.data as Record<string, unknown>)["hangtime"] as number | null)
+    .filter((h): h is number => h != null && h > 0);
+
+  const koLandingYards = ko
+    .map((k) => (k.data as Record<string, unknown>)["landingYard"] as number | null)
+    .filter((y): y is number => y != null && y > 0);
+
+  return {
+    total: kicks.length,
+    fg: { total: fg.length, made: fgMade },
+    punt: { total: punt.length, avgDist: avg(puntDists) },
+    ko: { total: ko.length, touchbacks: koTB, avgHangtime: avg(koHangtimes), avgLandingYard: avg(koLandingYards) },
+  };
 }
 
 // ─── Session Create/Edit Modal ─────────────────────────────────────────────
@@ -228,7 +251,11 @@ function SessionCard({ session, isActive, onSetActive, onEdit, onDelete }: Sessi
           )}
           {stats.ko.total > 0 && (
             <View style={s.statChip}>
-              <Text style={s.statChipText}>KO {stats.ko.touchbacks}/{stats.ko.total} TB ({pct(stats.ko.touchbacks, stats.ko.total)})</Text>
+              <Text style={s.statChipText}>
+                KO {stats.ko.touchbacks}/{stats.ko.total} TB
+                {stats.ko.avgLandingYard != null ? ` · ${Math.round(stats.ko.avgLandingYard)}yd avg` : ""}
+                {stats.ko.avgHangtime != null ? ` · ${(stats.ko.avgHangtime / 1000).toFixed(1)}s hang` : ""}
+              </Text>
             </View>
           )}
         </View>
