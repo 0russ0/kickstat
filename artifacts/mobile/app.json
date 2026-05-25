@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Kicking Tracker",
-    "slug": "mobile",
+    "name": "Kick Stat",
+    "slug": "kickstat",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "mobile",
+    "scheme": "kickstat",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {
@@ -14,9 +14,12 @@
       "backgroundColor": "#020617"
     },
     "ios": {
-      "supportsTablet": false
+      "supportsTablet": false,
+      "bundleIdentifier": "com.kickstat.app"
     },
-    "android": {},
+    "android": {
+      "package": "com.kickstat.app"
+    },
     "web": {
       "favicon": "./assets/images/icon.png"
     },
