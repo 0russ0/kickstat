@@ -70,9 +70,12 @@ function formatKickSummary(kick: Kick): string {
     const ht = d["hangtime"] as number;
     const tbType = d["touchbackType"] as string | undefined;
     const returnYards = d["returnYards"] as number | null | undefined;
+    const isPractice = !kick.gameId;
     const tbStr = tb
       ? `Touchback${tbType ? ` (${tbType.replace("_", " ")})` : ""}`
-      : `Returned${returnYards != null ? ` ${returnYards}yd` : ""}`;
+      : isPractice
+        ? "Practice"
+        : `Returned${returnYards != null ? ` ${returnYards}yd` : ""}`;
     return `${tbStr} · ${formatHangtime(ht)}`;
   }
 
