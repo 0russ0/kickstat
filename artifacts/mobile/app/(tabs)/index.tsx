@@ -15,7 +15,6 @@ import { Feather } from "@expo/vector-icons";
 import { AthleteBar } from "@/components/AthleteBar";
 import { KeyboardToolbar } from "@/components/KeyboardToolbar";
 import { KickHistoryList } from "@/components/KickHistoryList";
-import { KickTypeToggle } from "@/components/KickTypeToggle";
 import { ModeSelector } from "@/components/ModeSelector";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
@@ -247,7 +246,6 @@ export default function FieldGoalScreen() {
   <SwipeableScreen tabIndex={0}>
     <View style={s.screen}>
       <AthleteBar />
-      <KickTypeToggle active="fg" />
       <ModeSelector />
       <KeyboardAvoidingView
         style={{ flex: 1 }}

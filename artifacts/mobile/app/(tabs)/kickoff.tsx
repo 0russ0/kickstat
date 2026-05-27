@@ -13,7 +13,6 @@ import {
 import * as Haptics from "expo-haptics";
 import { AthleteBar } from "@/components/AthleteBar";
 import { KickHistoryList } from "@/components/KickHistoryList";
-import { KickTypeToggle } from "@/components/KickTypeToggle";
 import { ModeSelector } from "@/components/ModeSelector";
 import { StopwatchButton } from "@/components/StopwatchButton";
 import { useApp } from "@/context/AppContext";
@@ -157,7 +156,6 @@ export default function KickoffScreen() {
   <SwipeableScreen tabIndex={2}>
     <View style={s.screen}>
       <AthleteBar />
-      <KickTypeToggle active="kickoff" />
       <ModeSelector />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
         <ScrollView style={s.scroll} contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
