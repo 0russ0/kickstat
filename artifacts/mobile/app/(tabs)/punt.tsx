@@ -13,6 +13,7 @@ import {
 import * as Haptics from "expo-haptics";
 import { Feather } from "@expo/vector-icons";
 import { AthleteBar } from "@/components/AthleteBar";
+import { KeyboardToolbar } from "@/components/KeyboardToolbar";
 import { KickHistoryList } from "@/components/KickHistoryList";
 import { ModeSelector } from "@/components/ModeSelector";
 import { StopwatchButton } from "@/components/StopwatchButton";
@@ -302,6 +303,7 @@ export default function PuntScreen() {
                 placeholderTextColor={colors.mutedForeground}
                 keyboardType="numeric"
                 maxLength={2}
+                inputAccessoryViewID="punt-numeric"
               />
             </View>
 
@@ -341,6 +343,7 @@ export default function PuntScreen() {
                   placeholderTextColor={colors.mutedForeground}
                   keyboardType="numeric"
                   maxLength={2}
+                  inputAccessoryViewID="punt-numeric"
                 />
               </View>
             ) : (
@@ -380,6 +383,7 @@ export default function PuntScreen() {
                   placeholderTextColor={colors.mutedForeground}
                   keyboardType="numeric"
                   maxLength={2}
+                  inputAccessoryViewID="punt-numeric"
                 />
               </View>
             )}
@@ -465,6 +469,7 @@ export default function PuntScreen() {
                   placeholderTextColor={colors.mutedForeground}
                   keyboardType="numeric"
                   maxLength={3}
+                  inputAccessoryViewID="punt-numeric"
                 />
               </View>
             )}
@@ -489,6 +494,7 @@ export default function PuntScreen() {
           />
         </ScrollView>
       </KeyboardAvoidingView>
+      <KeyboardToolbar nativeID="punt-numeric" />
     </View>
   </SwipeableScreen>
   );

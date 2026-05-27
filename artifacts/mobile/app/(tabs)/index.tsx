@@ -13,6 +13,7 @@ import {
 import * as Haptics from "expo-haptics";
 import { Feather } from "@expo/vector-icons";
 import { AthleteBar } from "@/components/AthleteBar";
+import { KeyboardToolbar } from "@/components/KeyboardToolbar";
 import { KickHistoryList } from "@/components/KickHistoryList";
 import { KickTypeToggle } from "@/components/KickTypeToggle";
 import { ModeSelector } from "@/components/ModeSelector";
@@ -266,6 +267,7 @@ export default function FieldGoalScreen() {
                 placeholderTextColor={colors.mutedForeground}
                 keyboardType="numeric"
                 maxLength={3}
+                inputAccessoryViewID="fg-numeric"
               />
             </View>
 
@@ -435,6 +437,7 @@ export default function FieldGoalScreen() {
           <KickHistoryList kickType="field_goal" gameId={kickMode === "game" && activeGame ? activeGame.id : undefined} />
         </ScrollView>
       </KeyboardAvoidingView>
+      <KeyboardToolbar nativeID="fg-numeric" />
     </View>
   </SwipeableScreen>
   );

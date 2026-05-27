@@ -1,7 +1,10 @@
 import React, { useState, useMemo } from "react";
 import {
   Alert,
+  Keyboard,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -10,6 +13,7 @@ import {
   View,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import { KeyboardToolbar } from "@/components/KeyboardToolbar";
 import {
   useGetPracticeSessions,
   useCreatePracticeSession,
@@ -156,36 +160,44 @@ function SessionModal({ visible, initial, athleteId, onClose }: SessionModalProp
   return (
     <>
       <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} onShow={handleOpen}>
-        <Pressable style={s.overlay} onPress={onClose}>
-          <Pressable style={s.sheet} onPress={(e) => e.stopPropagation()}>
-            <View style={s.handle} />
-            <Text style={s.title}>{initial ? "Edit Session" : "New Practice Session"}</Text>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
+          <Pressable style={s.overlay} onPress={() => { Keyboard.dismiss(); onClose(); }}>
+            <Pressable style={s.sheet} onPress={(e) => e.stopPropagation()}>
+              <View style={s.handle} />
+              <Text style={s.title}>{initial ? "Edit Session" : "New Practice Session"}</Text>
 
-            <Text style={s.label}>Date</Text>
-            <Pressable style={s.dateBtn} onPress={() => setCalendarOpen(true)}>
-              <Text style={s.dateBtnText}>{formatDate(date)}</Text>
-              <Feather name="calendar" size={18} color={colors.mutedForeground} />
-            </Pressable>
+              <Text style={s.label}>Date</Text>
+              <Pressable style={s.dateBtn} onPress={() => setCalendarOpen(true)}>
+                <Text style={s.dateBtnText}>{formatDate(date)}</Text>
+                <Feather name="calendar" size={18} color={colors.mutedForeground} />
+              </Pressable>
 
-            <Text style={s.label}>Notes (optional)</Text>
-            <TextInput
-              style={s.notesInput}
-              value={notes}
-              onChangeText={setNotes}
-              placeholder="e.g. Morning practice, windy conditions…"
-              placeholderTextColor={colors.mutedForeground}
-              multiline
-            />
+              <Text style={s.label}>Notes (optional)</Text>
+              <TextInput
+                style={s.notesInput}
+                value={notes}
+                onChangeText={setNotes}
+                placeholder="e.g. Morning practice, windy conditions…"
+                placeholderTextColor={colors.mutedForeground}
+                multiline
+                inputAccessoryViewID="practice-notes"
+              />
 
-            <Pressable style={[s.saveBtn, { opacity: saving ? 0.7 : 1 }]} onPress={handleSave} disabled={saving}>
-              <Text style={s.saveBtnText}>{saving ? "Saving…" : initial ? "Save Changes" : "Create Session"}</Text>
-            </Pressable>
-            <Pressable style={s.cancelBtn} onPress={onClose}>
-              <Text style={s.cancelBtnText}>Cancel</Text>
+              <Pressable style={[s.saveBtn, { opacity: saving ? 0.7 : 1 }]} onPress={handleSave} disabled={saving}>
+                <Text style={s.saveBtnText}>{saving ? "Saving…" : initial ? "Save Changes" : "Create Session"}</Text>
+              </Pressable>
+              <Pressable style={s.cancelBtn} onPress={onClose}>
+                <Text style={s.cancelBtnText}>Cancel</Text>
+              </Pressable>
             </Pressable>
           </Pressable>
-        </Pressable>
+        </KeyboardAvoidingView>
       </Modal>
+
+      <KeyboardToolbar nativeID="practice-notes" />
 
       <CalendarPicker
         visible={calendarOpen}
