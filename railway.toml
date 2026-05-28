@@ -5,7 +5,7 @@ builder = "nixpacks"
 nixPkgs = ["nodejs_20"]
 
 [build.nixpacksPlan.phases.install]
-cmds = ["corepack enable", "corepack prepare pnpm@10.34.0 --activate", "pnpm install --no-frozen-lockfile"]
+cmds = ["npm install -g pnpm && pnpm install --no-frozen-lockfile"]
 
 [build.nixpacksPlan.phases.build]
 cmds = ["pnpm --filter @workspace/api-server run build"]
