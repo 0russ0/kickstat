@@ -18,8 +18,9 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppProvider } from "@/context/AppContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 
-if (process.env.EXPO_PUBLIC_DOMAIN) {
-  setBaseUrl(`https://${process.env.EXPO_PUBLIC_DOMAIN}`);
+const _apiDomain = process.env.EXPO_PUBLIC_DOMAIN || "kickstat.up.railway.app";
+if (_apiDomain) {
+  setBaseUrl(`https://${_apiDomain}`);
 }
 
 SplashScreen.preventAutoHideAsync();

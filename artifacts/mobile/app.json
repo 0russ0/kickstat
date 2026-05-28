@@ -26,9 +26,7 @@
     "plugins": [
       [
         "expo-router",
-        {
-          "origin": "https://replit.com/"
-        }
+        {}
       ],
       "expo-font",
       "expo-web-browser"
@@ -36,6 +34,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "8a1224a6-675d-42cf-a018-07941c0276ec"
+      }
+    },
+    "owner": "0russloyd0"
   }
 }
